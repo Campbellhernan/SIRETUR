@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class AlterUsersTable extends Migration
+class AlterDocumentosTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,7 +13,9 @@ class AlterUsersTable extends Migration
      */
     public function up()
     {
-
+        Schema::table('documentos', function (Blueprint $table) {
+            //
+        });
     }
 
     /**
@@ -23,6 +25,8 @@ class AlterUsersTable extends Migration
      */
     public function down()
     {
-        //
+        Schema::table('documentos', function (Blueprint $table) {
+            //
+        });
     }
 }

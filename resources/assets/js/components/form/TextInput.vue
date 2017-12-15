@@ -8,6 +8,8 @@
       :label="label"
       :name="name"
       :prepend-icon="prepend"
+      :box="box"
+      :multi-line="multiline"
       v-model="_value"
     ></v-text-field>
     <has-error :form="form" :field="name"></has-error>
@@ -48,6 +50,14 @@ export default {
     },
     value: {
       type: String
+    },
+    box: {
+      type: Boolean,
+      default: false
+    },
+    multiline: {
+      type: Boolean,
+      default: false
     }
   },
 

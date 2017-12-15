@@ -1,7 +1,7 @@
 <template>
       <v-container fluid grid-list-md class="grey lighten-4">
         <progress-bar :show="busy"></progress-bar>
-        <form @submit.prevent="search" @keydown="form.onKeydown($event)">
+        <form @submit.prevent="recommendation" @keydown="form.onKeydown($event)">
         <v-layout row pa-4>
           <div class="headline grey--tex t ma-2">
             {{ title }}
@@ -53,9 +53,9 @@
 import axios from 'axios'
 import Form from 'vform'
 export default {
-  name: 'search-view',
+  name: 'recommendation-view',
   metaInfo () {
-    return { title: this.$t('search') }
+    return { title: this.$t('recommendation') }
   },
   data: () => ({
     title: window.config.appName,
@@ -68,23 +68,15 @@ export default {
     }),
   }),
   created() {
-      this.form.textarea = this.$route.params.query;
-  		this.search();
+  		this.recommendation();
 	},
   methods: {
-    async getData(){
-        this.busy = true
-        await axios.get('/api/search')
-				.then(response => {
-				  this.cards = response.data;
-				});
-				this.busy = false
-    },
-     async search () {
+
+     async recommendation () {
       if (await this.formHasErrors()) return
       this.busy = true
 
-      await this.form.post('/api/search') 
+      await this.form.get('/api/recommendation') 
       .then(response => { 
           console.log(response.data);
           if(response.data.status == 'OK'){
@@ -102,6 +94,5 @@ export default {
       this.busy = false
     }
   }
-  
 }
 </script>

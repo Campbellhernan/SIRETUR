@@ -24,7 +24,7 @@ $polyfills = [
 ];
 @endphp
 <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features={{ implode(',', $polyfills) }}"></script>
-
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAGr4repv7lxsgWh-RoL2cYJWQbVL-QVOY&libraries=places" ></script>
 {{-- Load the application scripts --}}
 @if (app()->isLocal())
   <script src="{{ mix('js/app.js') }}"></script>

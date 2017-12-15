@@ -32,5 +32,8 @@
   "new_password": "Nueva contraseña",
   "password_length_hint": "Al menos 8 carácteres",
   "nav_menu_title": "Menú",
-  "search": "Buscar"
+  "search": "Buscar",
+  "append": "Añadir contenido",
+  "cluster": "Clasificar contenido",
+  "recommendation":"Recomendaciones"
 }

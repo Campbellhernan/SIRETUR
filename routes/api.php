@@ -19,12 +19,16 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-
+    Route::post('append', 'GestorContenidoController@append');
+    Route::post('cluster', 'GestorContenidoController@cluster');
+    Route::post('search', 'GestorBusquedaController@search');
+    Route::get('documents', 'GestorContenidoController@documents');
+    Route::get('recommendation', 'GestorRecomendacionController@recommendation');
     Route::patch('settings/profile', 'Settings\UpdateProfile');
     Route::patch('settings/password', 'Settings\UpdatePassword');
 });
 
-Route::group(['middleware' => 'guest:api'], function () {
+    Route::group(['middleware' => 'guest:api'], function () {
     Route::post('login', 'Auth\LoginController@login');
     Route::post('register', 'Auth\RegisterController@register');
     Route::post('password/email', 'Auth\ForgotPasswordController@sendResetLinkEmail');

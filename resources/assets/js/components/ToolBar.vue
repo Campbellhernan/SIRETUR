@@ -11,16 +11,6 @@
       </router-link>
     </v-toolbar-title>
     
-   <!-- <template v-if="authenticated">
-    <v-text-field 
-        light
-        solo
-        prepend-icon="search"
-        placeholder="Search"
-        style="max-width: 500px; min-width: 128px"
-      ></v-text-field>
-    </template>  -->
-    
     <div class="d-flex align-center" style="margin-left: auto">
       <!-- Authenticated -->
       <template v-if="authenticated">

@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class AlterUsersTable extends Migration
+class CreateDiccionariosTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,7 +13,13 @@ class AlterUsersTable extends Migration
      */
     public function up()
     {
-
+        Schema::create('diccionarios', function (Blueprint $table) {
+            $table->string('termino');
+            $table->integer('cantidad');
+            $table->timestamps();
+            
+            $table->primary('termino');
+        });
     }
 
     /**
@@ -23,6 +29,6 @@ class AlterUsersTable extends Migration
      */
     public function down()
     {
-        //
+        Schema::dropIfExists('diccionarios');
     }
 }
