@@ -23,7 +23,8 @@ class CreateDocumentosTable extends Migration
             $table->text('palabras_clave');
             $table->decimal('rating');
             $table->integer('cluster')->nullable()->default(null);
-            $table->string('foto_referencia');
+            $table->decimal('latitud', 28, 10);
+            $table->decimal('longitud', 28, 10);
             $table->timestamps();
         });
     }

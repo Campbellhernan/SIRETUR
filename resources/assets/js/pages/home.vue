@@ -2,7 +2,7 @@
   <form @submit.prevent="search" @keydown="form.onKeydown($event)">
   <v-layout row>
     <v-flex xs10 offset-xs1>
-       <v-card color="grey lighten-4" flat>
+       <v-card color="grey lighten-4"  flat>
         <v-card-text >  
         <v-layout column align-center>
           <div class="display-3 grey--text mt-5">
@@ -46,7 +46,7 @@ export default {
   }),
   methods: {
     async  search(){
-         this.$router.push({ name: 'search',params: { query: this.form.textarea } })
+         this.$router.push({ name: 'search',query: { query: this.form.textarea } })
       }
     }
 }

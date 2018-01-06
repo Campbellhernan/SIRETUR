@@ -16,8 +16,11 @@ class CreateComentariosTable extends Migration
         Schema::create('comentarios', function (Blueprint $table) {
             $table->increments('id');
             $table->string('place_id');           
-            $table->string('documento_id');
             $table->text('comentario');
+            $table->string('nombre_usuario');
+            $table->decimal('rating');
+            $table->dateTime('fecha_publicacion');
+            $table->enum('origen',['Google','SIRETUR']);
             $table->timestamps();
         });
     }

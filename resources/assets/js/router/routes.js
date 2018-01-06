@@ -8,6 +8,7 @@ export default ({ authGuard, guestGuard }) => [
     { path: '/recommendation', name: 'recommendation', component: require('~/pages/recommendation.vue') },
     { path: '/append', name: 'append', component: require('~/pages/append.vue') },
     { path: '/cluster', name: 'cluster', component: require('~/pages/cluster.vue') },
+    { path: '/content', name: 'content', component: require('~/pages/content.vue') },
     { path: '/settings',
       component: require('~/pages/settings/index.vue'),
       children: [

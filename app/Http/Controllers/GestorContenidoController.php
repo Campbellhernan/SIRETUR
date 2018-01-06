@@ -38,21 +38,20 @@ class GestorContenidoController extends Controller
                 $documento->nombre = $place['name'];
                 $documento->description = $descripcion;
                 $documento->rating = $place['rating'];
+                $documento->latitud = $place['geometry']['location']['lat'];
+                $documento->longitud = $place['geometry']['location']['lng'];
                 $documento->palabras_clave = ' ';
-            
-                if(count($place['photos']) > 0){
-                    $documento->foto_referencia = $place['photos'][0]['photo_reference'];
-                }else{
-                    $documento->foto_referencia = ' ';
-                }
                 $documento->save();
                 $collection = array($documento->description,$documento->direccion);
                 foreach($place['reviews'] as $review){
                     $comentario = new Comentario;
                     $comentario->place_id = $place_id;
+                    $comentario->nombre_usuario = $review['author_name'];
+                    $comentario->origen = 'Google';
+                    $comentario->rating = $review['rating'];
+                    $comentario->fecha_publicacion = date("Y-m-d H:i:s", $review['time']);
                     $comentario->comentario = $review['text'];
                     array_push($collection,$comentario->comentario);
-                    $comentario->documento_id = $documento->id;
                     $comentario->save();
                 }
                 $palabras = self::palabrasClave($collection);
@@ -77,6 +76,9 @@ class GestorContenidoController extends Controller
         $dictionary = array();
         $docCount = array();
         $collection = array();
+        
+        self::aggregate(); //Actualiza los comentarios de los sitios turisticos.
+        
         $documentos = Documento::all();
         
         foreach ($documentos as $documento) {
@@ -106,7 +108,6 @@ class GestorContenidoController extends Controller
         self::kmeans($tset,$k,$arrayID);
         
         $resul['status'] = 'OK';
-        $resul['prueba'] = $dictionary;
         return $resul;
     }
     
@@ -159,7 +160,7 @@ class GestorContenidoController extends Controller
     
     public function kmeans($tset, $k, $arrayID){
         $clust = new KMeans(
-            $k, // two clusters
+            $k,
             new Euclidean(),
             new EuclideanCF()
         );
@@ -346,7 +347,79 @@ class GestorContenidoController extends Controller
         return $doc;
     }
     public function documents(){
-        $documentos = Documento::select('place_id','nombre')->get();
+        $documentos = Documento::select('place_id','nombre', 'latitud','longitud')->get();
         return $documentos;
     }
+    
+    public function content(Request $request){
+        $place_id = $request['place_id'];
+        $documento = Documento::where('place_id','=',$place_id)->first();
+        $comentarios = Comentario::where('place_id','=',$place_id)->get();
+        $resul['status'] = 'OK';
+        $resul['documento'] = $documento;
+        $resul['comentario'] = $comentarios->map(function ($value) {
+                                    $value->avatarColor = self::avatarColor();
+                                    return $value;
+                                });
+        return $resul;
+    }
+    
+    public function public(Request $request)
+    {
+        $place_id = $request['place_id'];
+        $text = $request['comentario'];
+        $rating = $request['rating'];
+        $comentario = new Comentario;
+        $comentario->place_id = $place_id;
+        $comentario->nombre_usuario = Auth::user()->name;
+        $comentario->origen = 'SIRETUR';
+        $comentario->rating = $rating;
+        $comentario->fecha_publicacion = date("Y-m-d H:i:s");
+        $comentario->comentario = $text;
+        $comentario->save();
+        $resul['status'] = 'OK';
+        $resul['comentario'] = $comentario;
+        return $resul;
+    }
+    
+    public function aggregate(){
+        $documentos = Documento::all();
+        $resultado = array();
+        foreach($documentos as $documento){
+            $googlePlace = GooglePlaces::placeDetails($documento->place_id,['language'=>'es']);
+            $place = $googlePlace['result'];
+            foreach($place['reviews'] as $review){
+                $comentario = Comentario::firstOrNew(array( 'place_id' => $documento->place_id,
+                                                            'nombre_usuario' => $review['author_name'],
+                                                            'origen' => 'Google',
+                                                            'rating' => $review['rating'],
+                                                            'fecha_publicacion' =>  date("Y-m-d H:i:s", $review['time'])));
+                $comentario->comentario = $review['text'];
+                $comentario->nombre_usuario = $review['author_name'];
+                $comentario->origen = 'Google';
+                $comentario->rating = $review['rating'];
+                $comentario->fecha_publicacion =date("Y-m-d H:i:s", $review['time']);
+                $comentario->save();
+            }
+            $comentarios = Comentario::where('place_id','=',$documento->place_id)->pluck('comentario');
+            $comentarios->push($documento->description);
+            $comentarios->push($documento->direccion);
+            $palabras = self::palabrasClave($comentarios);
+            $arrayWord = explode(' ', $palabras);
+            $stemmer = new Spanish();
+            foreach($arrayWord as $word_id => $word){
+                $arrayWord[$word_id] = $stemmer->stem($word);
+            }
+            $palabras = implode(' ', $arrayWord);
+            $documento->palabras_clave = $palabras;
+            $documento->save();
+            return $palabras;
+        }
+    }
+    
+    private function avatarColor(){
+        $colores = ['red','pink','purple','deep-purple','indigo','blue','light-blue','cyan','teal','green','light-green','lime','yellow','amber','orange','deep-orange','brown','blue-grey','grey'];
+        return array_random($colores);
+    }
+    
 }

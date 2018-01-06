@@ -45,6 +45,7 @@ class GestorBusquedaController extends Controller
         $cluster = null;
         $centroides = DB::table('centroides')->select('centroide')->distinct()->get();
         $coordenadas = array();
+        
         foreach ($centroides as $centroide) {
             $coordenada = DB::table('centroides')->where('centroide', $centroide->centroide)
                                                                         ->pluck('valor','termino')
@@ -64,8 +65,9 @@ class GestorBusquedaController extends Controller
               $cluster = $centroide->centroide;
             }
         }
-    
-        $documentos = Documento::where('cluster','=' ,$cluster)->get();
+        $page = $request['current_page'];
+        $documentos = Documento::where('cluster','=' ,$cluster)->paginate(10,['*'],'page',$page);
+        $documentos->appends(['query' => $query])->links();
         $terminos = DB::table('diccionarios')->whereIn('termino', $terms)->get();
         
         $terminos->each(function ($item, $key) {

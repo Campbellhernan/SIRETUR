@@ -20,10 +20,12 @@ Route::group(['middleware' => 'auth:api'], function () {
         return $request->user();
     });
     Route::post('append', 'GestorContenidoController@append');
+    Route::post('public', 'GestorContenidoController@public');
     Route::post('cluster', 'GestorContenidoController@cluster');
     Route::post('search', 'GestorBusquedaController@search');
     Route::get('documents', 'GestorContenidoController@documents');
-    Route::get('recommendation', 'GestorRecomendacionController@recommendation');
+    Route::post('recommendation', 'GestorRecomendacionController@recommendation');
+    Route::post('content', 'GestorContenidoController@content');
     Route::patch('settings/profile', 'Settings\UpdateProfile');
     Route::patch('settings/password', 'Settings\UpdatePassword');
 });

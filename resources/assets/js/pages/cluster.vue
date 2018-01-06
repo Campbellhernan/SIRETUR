@@ -1,6 +1,7 @@
 <template>
+    <div v-if="user.perfil =='Experto' || user.perfil == 'Administrador'">
       <v-card color="grey lighten-4" flat>
-        <progress-bar :show="form.busy"></progress-bar>
+        <progress-bar :show="this.busy"></progress-bar>
         <v-card-title primary-title>
             <div class="headline">Clasificar contenido</div>
         </v-card-title>
@@ -13,11 +14,14 @@
           </form>
         </v-container>
       </v-card>
+    </div>
 </template>
+
 
 <script>
 import Form from 'vform'
 import store from '~/store'
+import { mapGetters } from 'vuex'
 export default {
   name: 'cluster-view',
   metaInfo () {
@@ -29,7 +33,10 @@ export default {
     }),
     busy: false
   }),
-
+  computed: mapGetters({
+    user: 'authUser',
+    authenticated: 'authCheck'
+  }),
   methods: {
     async cluster () {
       if (await this.formHasErrors()) return
@@ -53,6 +60,15 @@ export default {
             })
       this.busy = false
     }
+  },
+  beforeRouteEnter(to, from, next) {
+    next(vm => {
+        if(vm.user.perfil =='Experto' || vm.user.perfil == 'Administrador'){
+            return next();
+        }else{
+          return next({name:'home'});
+        }
+    })
   }
 }
 </script>

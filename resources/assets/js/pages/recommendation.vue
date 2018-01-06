@@ -1,7 +1,7 @@
 <template>
       <v-container fluid grid-list-md class="grey lighten-4">
         <progress-bar :show="busy"></progress-bar>
-        <form @submit.prevent="recommendation" @keydown="form.onKeydown($event)">
+        <form @submit.prevent="search" @keydown="form.onKeydown($event)">
         <v-layout row pa-4>
           <div class="headline grey--tex t ma-2">
             {{ title }}
@@ -27,16 +27,29 @@
               <v-card>
               <v-card-title column primary-title>
                   <div class="headline" >{{card.nombre}}</div>
-                  <div>{{card.description}}</div>
               </v-card-title>
+              <v-card-text>
+                  <div class="body-1">{{card.description}}</div>
+              </v-card-text>
               <v-card-actions>
-                <v-btn flat color="primary">Explorar</v-btn>
+                <v-flex>
+                  <v-btn flat color="primary" @click.native="content(card)">Ver mas</v-btn>
+                  <v-btn flat color="primary" v-bind:href="card.url" >Ver en Google Map</v-btn>
+                </v-flex>
+                <v-flex xs2>
+                    <star-rating read-only v-bind:increment="0.001" v-bind:rating="parseFloat(card.rating)" :star-size="20"></star-rating>
+                </v-flex>
               </v-card-actions>
               </v-card>
             </v-flex>
+            <v-flex>
+              <div class="text-xs-center">
+                <v-pagination :length="pagination.last_page" v-model="pagination.current_page" @next="recommendation()" @previous="recommendation()" @input="recommendation()" circle></v-pagination>
+              </div>
+            </v-flex>
           </v-layout>
           <v-layout row wrap v-else>
-            <v-flex v-bind="{ [`xs${flexs}`]: true }">
+            <v-flex xs12>
               <v-card color="error">
               <v-card-title row primary-title>
                 <v-icon>warning</v-icon>
@@ -52,6 +65,7 @@
 <script>
 import axios from 'axios'
 import Form from 'vform'
+import StarRating from 'vue-star-rating'
 export default {
   name: 'recommendation-view',
   metaInfo () {
@@ -64,9 +78,19 @@ export default {
     busy: false,
     found:false,
     form: new Form({
-      textarea: ''
+      textarea: '',
+      current_page: 1
     }),
+    pagination:{
+      total: 0,
+      per_page: 0,
+      last_page: 1,
+      current_page: 1,
+    },
   }),
+  components:{
+      'star-rating':StarRating
+  },
   created() {
   		this.recommendation();
 	},
@@ -75,13 +99,16 @@ export default {
      async recommendation () {
       if (await this.formHasErrors()) return
       this.busy = true
-
-      await this.form.get('/api/recommendation') 
+      this.form.current_page = this.pagination.current_page;
+      await this.form.post('/api/recommendation') 
       .then(response => { 
           console.log(response.data);
           if(response.data.status == 'OK'){
-            if(response.data.documentos.length >0){
-              this.cards = response.data.documentos;
+            if(response.data.documentos.data.length >0){
+              this.pagination.total = response.data.documentos.total;
+              this.pagination.per_page = response.data.documentos.per_page;
+              this.pagination.last_page = response.data.documentos.last_page;
+              this.cards = response.data.documentos.data;
               this.found=true;
             }else{
               this.found = false;
@@ -92,6 +119,12 @@ export default {
           console.log(error.response);
       })
       this.busy = false
+    },
+    content: function($card){
+       this.$router.push({ name: 'content',query: {  place_id: $card.place_id} })
+    },
+    async  search(){
+     this.$router.push({ name: 'search',query: { query: this.form.textarea } })
     }
   }
 }

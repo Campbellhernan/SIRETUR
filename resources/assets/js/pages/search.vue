@@ -19,24 +19,36 @@
         <v-divider></v-divider>
         <v-flex xs10 offset-xs1 mt-3>
           <v-layout row wrap v-if="found">
-            <v-flex
-              v-bind="{ [`xs${flexs}`]: true }"
+            <v-flex xs12
               v-for="card in cards"
               :key="card.nombre"
             >
               <v-card>
               <v-card-title column primary-title>
                   <div class="headline" >{{card.nombre}}</div>
-                  <div>{{card.description}}</div>
               </v-card-title>
+              <v-card-text>
+                  <div class="body-1">{{card.description}}</div>
+              </v-card-text>
               <v-card-actions>
-                <v-btn flat color="primary">Explorar</v-btn>
+                <v-flex>
+                  <v-btn flat color="primary" @click.native="content(card)">Ver mas</v-btn>
+                  <v-btn flat color="primary" v-bind:href="card.url" >Ver en Google Map</v-btn>
+                </v-flex>
+                <v-flex xs2>
+                    <star-rating read-only v-bind:increment="0.001" v-bind:rating="parseFloat(card.rating)" :star-size="20"></star-rating>
+                </v-flex>
               </v-card-actions>
               </v-card>
             </v-flex>
+            <v-flex>
+              <div class="text-xs-center">
+                <v-pagination :length="pagination.last_page" v-model="pagination.current_page" @next="search()" @previous="search()" @input="search()" circle></v-pagination>
+              </div>
+            </v-flex>
           </v-layout>
           <v-layout row wrap v-else>
-            <v-flex v-bind="{ [`xs${flexs}`]: true }">
+            <v-flex xs12>
               <v-card color="error">
               <v-card-title row primary-title>
                 <v-icon>warning</v-icon>
@@ -46,50 +58,62 @@
             </v-flex>
           </v-layout>
         </v-flex>
+
       </v-container>
 </template>
 
 <script>
 import axios from 'axios'
 import Form from 'vform'
+import StarRating from 'vue-star-rating'
 export default {
   name: 'search-view',
   metaInfo () {
     return { title: this.$t('search') }
   },
+  components:{
+        'star-rating':StarRating
+  },
   data: () => ({
     title: window.config.appName,
     cards: [],
-    flexs: 12,
+    pagination:{
+      total: 0,
+      per_page: 0,
+      last_page: 1,
+      current_page: 1,
+    },
     busy: false,
     found:false,
+    page: 1,
     form: new Form({
-      textarea: ''
+      textarea: '',
+      current_page: 1
     }),
   }),
+  
   created() {
-      this.form.textarea = this.$route.params.query;
-  		this.search();
+    this.form.textarea = this.$route.query.query;
+		this.search();
 	},
+
   methods: {
-    async getData(){
-        this.busy = true
-        await axios.get('/api/search')
-				.then(response => {
-				  this.cards = response.data;
-				});
-				this.busy = false
-    },
+
      async search () {
       if (await this.formHasErrors()) return
       this.busy = true
-
+      this.form.current_page = this.pagination.current_page;
       await this.form.post('/api/search') 
       .then(response => { 
           console.log(response.data);
           if(response.data.status == 'OK'){
-            if(response.data.documentos.length >0){
-              this.cards = response.data.documentos;
+            
+            this.pagination.total = response.data.documentos.total;
+            this.pagination.per_page = response.data.documentos.per_page;
+            this.pagination.last_page = response.data.documentos.last_page;
+            
+            if(response.data.documentos.data.length >0){
+              this.cards = response.data.documentos.data;
               this.found=true;
             }else{
               this.found = false;
@@ -100,7 +124,11 @@ export default {
           console.log(error.response);
       })
       this.busy = false
-    }
+    },
+    content: function($card){
+       this.$router.push({ name: 'content',query: { place_id: $card.place_id } })
+    },
+
   }
   
 }
