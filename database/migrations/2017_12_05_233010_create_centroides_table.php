@@ -17,7 +17,7 @@ class CreateCentroidesTable extends Migration
             $table->increments('id');
             $table->integer('centroide');
             $table->string('termino');
-            $table->decimal('valor');
+            $table->decimal('valor',28, 10);
             $table->timestamps();
         });
     }

@@ -35,5 +35,7 @@
   "search": "Buscar",
   "append": "Añadir contenido",
   "cluster": "Clasificar contenido",
-  "recommendation":"Recomendaciones"
+  "recommendation":"Recomendaciones",
+  "permits":"Permisos",
+  "metrics":"Métricas"
 }

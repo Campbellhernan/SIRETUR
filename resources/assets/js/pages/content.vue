@@ -12,24 +12,27 @@
             <v-container grid-list-md>
             <v-layout align-center row spacer>
               <v-flex xs1>
-                <v-btn flat icon large color="blue" @click="back()">
-                  <v-icon>arrow_back</v-icon>
-                </v-btn>
+                <v-tooltip top>
+                  <v-btn icon slot="activator" @click="back()">
+                    <v-icon color="blue">arrow_back</v-icon>
+                  </v-btn>
+                  <span>Volver a los resultados</span>
+                </v-tooltip>
               </v-flex>
-              <v-flex>
                 <div class="display-2 grey--text">{{this.documento.nombre}}</div>
-              </v-flex>
             </v-layout>
-            <v-flex>
               <div class="title grey--text">{{this.documento.direccion}}</div>
-            </v-flex>
             </v-container>
           </v-card-title>
           <v-container grid-list-md>
             <blockquote>
             {{this.documento.description}}
             </blockquote>
-            <star-rating read-only v-bind:increment="0.001" v-bind:rating="obtenerRating()" ></star-rating>
+            <v-layout row>
+              <v-btn flat color="primary" v-if="this.documento.fuente_descripcion != undefined" v-bind:href="this.documento.fuente_descripcion" >Fuente</v-btn>
+              <v-spacer></v-spacer>
+              <star-rating read-only v-bind:increment="0.001" v-bind:rating="obtenerRating()" ></star-rating>
+            </v-layout>
           </v-container>
         </v-card>
       </v-flex>
@@ -47,6 +50,37 @@
               </v-container>
           </v-card>
       </v-flex>
+       <v-flex xs12>
+        <v-card color="grey lighten-4" flat v-show="this.cargado">
+          <v-card-title primary-title>
+            <div class="headline">Lugares que quizas te interesen</div>
+          </v-card-title>
+
+            <v-container xs10 offset-xs1 mt-3 v-if="suggestions.length > 0">
+              <v-layout row wrap>
+                <v-flex xs4
+                v-for="suggestion in suggestions"
+                :key="suggestion.nombre">
+                  <v-card color="blue lighten-4" >
+                    <v-card-title column>
+                      <v-layout align-center row spacer>
+                          <div class="title" primary-title>{{suggestion.nombre}}</div>
+                      </v-layout>
+                    </v-card-title>
+                    <v-card-text>
+                      <div class="subheading">{{ suggestion.description.substr(0,68) + "..."}}</div>
+                    </v-card-text>
+                    <v-divider></v-divider>
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn flat color="primary" @click.native="content(suggestion)">Ver mas</v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-flex>
+              </v-layout>
+            </v-container>
+        </v-card>
+        </v-flex>
       <v-flex xs12>
           <v-card color="grey lighten-4" flat v-show="this.cargado">
           <v-card-title primary-title>
@@ -54,10 +88,9 @@
           </v-card-title>
           <v-container grid-list-md>
             <form @submit.prevent="public" @keydown="form.onKeydown($event)">
-                <v-flex xs12>
-                     <star-rating v-model="form.rating" v-bind:increment="0.5" :star-size="30" ></star-rating>
-                    <v-text-field v-model="form.comentario" box multi-line label="Comentario"></v-text-field>
-                </v-flex>
+                <star-rating v-model="form.rating" v-bind:increment="0.5" :star-size="30" ></star-rating>
+                <v-text-field v-model="form.comentario" box multi-line label="Comentario"></v-text-field>
+                <v-spacer></v-spacer>
                 <v-btn type="submit" color="primary">Publicar</v-btn>
             </form>
             <v-divider></v-divider>
@@ -79,14 +112,13 @@
                     <v-flex>
                       <div class="title" >{{card.nombre_usuario}}</div>
                     </v-flex>
-                    <v-flex xs2>
-                      <star-rating read-only v-bind:increment="0.001" v-bind:rating="parseFloat(card.rating)" :star-size="20"></star-rating>
-                    </v-flex>
+                    <v-spacer></v-spacer>
+                    <star-rating read-only v-bind:increment="0.001" v-bind:rating="parseFloat(card.rating)" :star-size="20"></star-rating>
                   </v-layout>
-              </v-card-title>
-              <v-card-text>
-                <div class="subheading">{{card.comentario}}</div>
-                <v-divider></v-divider>
+                </v-card-title>
+                <v-card-text>
+                  <div class="subheading">{{card.comentario}}</div>
+                  <v-divider></v-divider>
                   <v-layout align-center row spacer>
                     <v-flex>
                       <div class="caption" >{{card.fecha_publicacion}}</div>
@@ -95,7 +127,7 @@
                       <div class="caption" >{{card.origen}}</div>
                     </v-flex>
                   </v-layout>
-              </v-card-text>
+                </v-card-text>
               </v-card>
             </v-flex>
               </v-layout>
@@ -125,6 +157,7 @@ export default {
     }),
     documento: {},
     cards: {},
+    suggestions: {},
     busy: false,
     map: null, 
     marker: null,
@@ -162,7 +195,9 @@ export default {
       await this.form.post('/api/content') 
       .then(response => { 
           if(response.data.status == 'OK'){
+            console.log(response.data);
             this.documento = response.data.documento;
+            this.suggestions = response.data.recomendaciones;
             this.cards = response.data.comentario;
             this.latLng = new google.maps.LatLng(parseFloat(response.data.documento.latitud),parseFloat(response.data.documento.longitud))
             const element = document.getElementById("example-map")
@@ -205,6 +240,15 @@ export default {
             console.log(error.response)
         });
       this.busy = false
+    },
+    content: function($card){
+       this.$router.push({ name: 'content',query: { place_id: $card.place_id } })
+        if(this.$route.query.place_id == undefined){
+          this.$router.push({ name: 'home'});
+        }else{
+          this.form.place_id = this.$route.query.place_id;
+        }
+       this.obtenerDatos();
     },
   }
 }

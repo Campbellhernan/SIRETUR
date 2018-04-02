@@ -1,7 +1,7 @@
 <template>
       <v-container fluid grid-list-md class="grey lighten-4">
         <progress-bar :show="busy"></progress-bar>
-        <form @submit.prevent="search" @keydown="form.onKeydown($event)">
+        <form @submit.prevent="newSearch" @keydown="form.onKeydown($event)">
         <v-layout row pa-4>
           <div class="headline grey--tex t ma-2">
             {{ title }}
@@ -28,7 +28,7 @@
                   <div class="headline" >{{card.nombre}}</div>
               </v-card-title>
               <v-card-text>
-                  <div class="body-1">{{card.description}}</div>
+                  <div class="body-1">{{ card.description.substr(0,300) + "..."}}</div>
               </v-card-text>
               <v-card-actions>
                 <v-flex>
@@ -43,11 +43,11 @@
             </v-flex>
             <v-flex>
               <div class="text-xs-center">
-                <v-pagination :length="pagination.last_page" v-model="pagination.current_page" @next="search()" @previous="search()" @input="search()" circle></v-pagination>
+                <v-pagination :length="this.pages" v-model="form.current_page" @next="search()" @previous="search()" @input="search()" circle></v-pagination>
               </div>
             </v-flex>
           </v-layout>
-          <v-layout row wrap v-else>
+          <v-layout row wrap v-else-if="!this.busy">
             <v-flex xs12>
               <v-card color="error">
               <v-card-title row primary-title>
@@ -77,43 +77,37 @@ export default {
   data: () => ({
     title: window.config.appName,
     cards: [],
-    pagination:{
-      total: 0,
-      per_page: 0,
-      last_page: 1,
-      current_page: 1,
-    },
     busy: false,
     found:false,
-    page: 1,
+    
     form: new Form({
       textarea: '',
-      current_page: 1
+      current_page: 1,
+      perPage: 10,
+      total: 0,
     }),
   }),
-  
+  computed: {
+    pages () {
+      return this.form.perPage ? Math.ceil(this.form.total / this.form.perPage) : 0
+    }
+  },
   created() {
     this.form.textarea = this.$route.query.query;
 		this.search();
 	},
 
   methods: {
-
      async search () {
       if (await this.formHasErrors()) return
       this.busy = true
-      this.form.current_page = this.pagination.current_page;
       await this.form.post('/api/search') 
       .then(response => { 
           console.log(response.data);
           if(response.data.status == 'OK'){
-            
-            this.pagination.total = response.data.documentos.total;
-            this.pagination.per_page = response.data.documentos.per_page;
-            this.pagination.last_page = response.data.documentos.last_page;
-            
-            if(response.data.documentos.data.length >0){
-              this.cards = response.data.documentos.data;
+            if(response.data.documentos.length >0){
+              this.cards = response.data.documentos;
+              this.form.total = response.data.total;
               this.found=true;
             }else{
               this.found = false;
@@ -128,6 +122,10 @@ export default {
     content: function($card){
        this.$router.push({ name: 'content',query: { place_id: $card.place_id } })
     },
+    newSearch: function(){
+     this.$router.push({ name: 'search',query: { query: this.form.textarea } });
+     this.search();
+    }
 
   }
   

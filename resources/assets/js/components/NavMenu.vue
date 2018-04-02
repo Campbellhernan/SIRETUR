@@ -61,12 +61,18 @@ export default {
         { divider: this.obtenerPermiso() },
         { heading: 'Gestor de contenido', permiso:this.obtenerPermiso()},
         { title: 'Añadir contenido', icon: 'add_location', route: { name: 'append' }, permiso:this.obtenerPermiso() },
-        { title: 'Clasificar contenido', icon: 'storage', route: { name: 'cluster' }, permiso:this.obtenerPermiso() },
+        { title: 'Clasificar contenido', icon: 'storage', route: { name: 'cluster' }, permiso:this.obtenerPermisoExperto() },
+        { divider: this.obtenerPermisoExperto() },
+        { heading: 'Configuracion', permiso:this.obtenerPermisoExperto()},
+        { title: 'Métricas', icon: 'equalizer', route: { name: 'metrics' }, permiso:this.obtenerPermiso() },
       ]
   },
   methods:{
     obtenerPermiso: function(){
       return this.user.perfil =='Experto' || this.user.perfil == 'Administrador';
+    },
+    obtenerPermisoExperto: function(){
+      return this.user.perfil =='Experto';
     }
   }
 }

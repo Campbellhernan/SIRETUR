@@ -29,7 +29,7 @@
                   <div class="headline" >{{card.nombre}}</div>
               </v-card-title>
               <v-card-text>
-                  <div class="body-1">{{card.description}}</div>
+                  <div class="body-1">{{ card.description.substr(0,300) + "..."}}</div>
               </v-card-text>
               <v-card-actions>
                 <v-flex>
@@ -48,7 +48,7 @@
               </div>
             </v-flex>
           </v-layout>
-          <v-layout row wrap v-else>
+          <v-layout row wrap v-else-if="!this.busy">
             <v-flex xs12>
               <v-card color="error">
               <v-card-title row primary-title>
@@ -123,7 +123,7 @@ export default {
     content: function($card){
        this.$router.push({ name: 'content',query: {  place_id: $card.place_id} })
     },
-    async  search(){
+    search: function(){
      this.$router.push({ name: 'search',query: { query: this.form.textarea } })
     }
   }

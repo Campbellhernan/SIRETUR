@@ -20,8 +20,9 @@ class CreateDocumentosTable extends Migration
             $table->string('direccion');
             $table->string('nombre');
             $table->text('description');
+            $table->string('fuente_descripcion',250)->nullable()->default(null);
             $table->text('palabras_clave');
-            $table->decimal('rating');
+            $table->decimal('rating')->nullable()->default(0);
             $table->integer('cluster')->nullable()->default(null);
             $table->decimal('latitud', 28, 10);
             $table->decimal('longitud', 28, 10);

@@ -8,16 +8,18 @@ use App\Comentario as Comentario;
 use App\Diccionario as Diccionario;
 use App\Coleccion as Coleccion;
 use App\Centroide as Centroide;
+use App\Custom\Stemmer as Stemmer;
+use App\Custom\Kmeans as Kmeans;
 use App\User as User;
 use GooglePlaces;
 use Auth;
-use NlpTools\Clustering\KMeans;
-use NlpTools\Similarity\Euclidean;
-use NlpTools\Clustering\CentroidFactories\Euclidean as EuclideanCF;
+/*use NlpTools\Clustering\KMeans;
+use NlpTools\Similarity\CosineSimilarity;
+use NlpTools\Clustering\CentroidFactories\MeanAngle;
 use NlpTools\Documents\TrainingSet;
 use NlpTools\Documents\TokensDocument;
-use NlpTools\FeatureFactories\DataAsFeatures;
-use Wamania\Snowball\Spanish;
+use NlpTools\FeatureFactories\DataAsFeatures;*/
+
 use DB; 
 
 class GestorContenidoController extends Controller
@@ -28,6 +30,7 @@ class GestorContenidoController extends Controller
         $exist = DB::table('documentos')->where('place_id','=',$place_id)->count();
         if($exist <= 0){
             $descripcion = $request['descripcion'];
+            $fuente = $request['fuente'];
             $googlePlace = GooglePlaces::placeDetails($place_id,['language'=>'es']);
             if($googlePlace['status'] == 'OK'){
                 $place = $googlePlace['result'];
@@ -37,28 +40,31 @@ class GestorContenidoController extends Controller
                 $documento->direccion = $place['formatted_address'];
                 $documento->nombre = $place['name'];
                 $documento->description = $descripcion;
-                $documento->rating = $place['rating'];
+                $documento->fuente_descripcion = $fuente;
                 $documento->latitud = $place['geometry']['location']['lat'];
                 $documento->longitud = $place['geometry']['location']['lng'];
                 $documento->palabras_clave = ' ';
                 $documento->save();
                 $collection = array($documento->description,$documento->direccion);
-                foreach($place['reviews'] as $review){
-                    $comentario = new Comentario;
-                    $comentario->place_id = $place_id;
-                    $comentario->nombre_usuario = $review['author_name'];
-                    $comentario->origen = 'Google';
-                    $comentario->rating = $review['rating'];
-                    $comentario->fecha_publicacion = date("Y-m-d H:i:s", $review['time']);
-                    $comentario->comentario = $review['text'];
-                    array_push($collection,$comentario->comentario);
-                    $comentario->save();
+                if(isset($place['rating'])){
+                    $documento->rating = $place['rating'];
+                    foreach($place['reviews'] as $review){
+                        $comentario = new Comentario;
+                        $comentario->place_id = $place_id;
+                        $comentario->nombre_usuario = $review['author_name'];
+                        $comentario->origen = 'Google';
+                        $comentario->rating = $review['rating'];
+                        $comentario->fecha_publicacion = date("Y-m-d H:i:s", $review['time']);
+                        $comentario->comentario = $review['text'];
+                        array_push($collection,$comentario->comentario);
+                        $comentario->save();
+                    }
                 }
                 $palabras = self::palabrasClave($collection);
                 $arrayWord = explode(' ', $palabras);
-                $stemmer = new Spanish();
+                //$stemmer = new Spanish();
                 foreach($arrayWord as $word_id => $word){
-                    $arrayWord[$word_id] = $stemmer->stem($word);
+                    $arrayWord[$word_id] =  Stemmer::stemm($word);
                 }
                 $palabras = implode(' ', $arrayWord);
                 $documento->palabras_clave = $palabras;
@@ -77,7 +83,7 @@ class GestorContenidoController extends Controller
         $docCount = array();
         $collection = array();
         
-        self::aggregate(); //Actualiza los comentarios de los sitios turisticos.
+        self::aggregate(false); //Actualiza los comentarios de los sitios turisticos.
         
         $documentos = Documento::all();
         
@@ -106,8 +112,10 @@ class GestorContenidoController extends Controller
         $k = $request['k'];
         
         self::kmeans($tset,$k,$arrayID);
-        
+        $sim_promedio = self::similitud_promedio();
         $resul['status'] = 'OK';
+        $resul['items'] = $sim_promedio['resul'];
+        $resul['coordenadas'] = $sim_promedio['coordenadas'];
         return $resul;
     }
     
@@ -129,51 +137,59 @@ class GestorContenidoController extends Controller
             $diccionario->cantidad = $termino['df'];
             $diccionario->save();
         }
-        
-        $tset = new TrainingSet();
+
         $arrayID = array();
         $id = 0;
+        $data = array();
         foreach($collection as $idDoc  => $doc){
             $terms = explode(' ', $doc);
+            $terms = array_unique($terms);
             $docCount = count($collection);
             $vector = array();
             foreach($terms as $idTerm => $term){
                 $entry = $dictionary[$term];
                 $vector[$term] = ($entry['postings'][$idDoc]['tf'] * log($docCount / $entry['df'], 2));
+            }
+            
+            $vector = self::normalise($vector);
+            
+            foreach($terms as $idTerm => $term){
                 $coleccionEntidad = new Coleccion;
                 $coleccionEntidad->documento_id = $idDoc;
                 $coleccionEntidad->termino = $term;
                 $coleccionEntidad->tf_idf = $vector[$term];
                 $coleccionEntidad->save();
             }
-            $tset->addDocument(
-                $idDoc, 
-                new TokensDocument(self::normalise($vector))
-            );    
+            $data[$idDoc] = $vector;
+            
             $arrayID[$id] = $idDoc;
             $id++;
         }
-        $resul['tset'] = $tset;
+        $resul['tset'] = $data;
         $resul['arrayID'] = $arrayID;
         return $resul;
     }
     
     public function kmeans($tset, $k, $arrayID){
-        $clust = new KMeans(
-            $k,
-            new Euclidean(),
-            new EuclideanCF()
-        );
-        list($clusters,$centroids,$distances) =  $clust->cluster($tset, new DataAsFeatures());
         
+        $dimensions = Diccionario::count();
+        $centroides = DB::table('coleccions')->whereIn('documento_id', [1, 88, 81, 21, 9, 34, 102])
+                                            ->select('documento_id','termino','tf_idf')
+                                            ->get()
+                                            ->groupBy('documento_id')
+                                            ->map(function ($item, $key) {
+                                                return $item->pluck('tf_idf','termino'); 
+                                            });
+        $clasificacion = Kmeans::kmeans_inicial($tset,$dimensions,$centroides);
+        //$clasificacion = Kmeans::kmeans($tset,$k,$dimensions);
+        $clusters = $clasificacion['mapping'];
         foreach($clusters as $cluster_id=> $cluster){
-            foreach($cluster as $id=>$doc_id){
-                $documento = Documento::find($arrayID[$doc_id]);
-                $documento->cluster = $cluster_id;
+                $documento = Documento::find($cluster_id);
+                $documento->cluster = $cluster;
                 $documento->save();
-            }
         }
         Centroide::query()->truncate();
+        $centroids = $clasificacion['centroides'];
         foreach($centroids as $centroid_id => $centroid){
             foreach ($centroid as $termino => $coordenada) {
                 $centroide = new Centroide;
@@ -232,26 +248,9 @@ class GestorContenidoController extends Controller
 
     $string = stripcslashes($string);
 
-    $string = str_replace(
-      array( "¨", "º", "-", "~",
-         "#", "@", "|", "!",
-         "·", "$", "%", "&", "/",
-         "(", ")", "?", "'", "¡",
-         "¿", "[", "^", "`", "]",
-         "+", "}", "{", "¨", "´",
-         ">", "< ", ";", ",", ":",
-         ".", '"', "“", "”","nbsp", "°","—","_"),
-      '',
-      $string
-    );
+    $string = preg_replace('([^A-Za-z0-9])', ' ', $string);
 
-    $string = str_replace(
-      array('A','B','C','D','E','F','G','H','I','J','K','L','M',
-            'N','Ñ','O','P','Q','R','S','T','U','V','W','X','Y','Z'),
-      array('a','b','c','d','e','f','g','h','i','j','k','l','m',
-            'n','ñ','o','p','q','r','s','t','u','v','w','x','y','z'),
-      $string
-    );
+    $string = strtolower($string);
 
     $string = " ".$string." ";
 
@@ -260,36 +259,37 @@ class GestorContenidoController extends Controller
       ' ultima ',' ultimas ',' ultimo ',' ultimos ',' a ',
       ' anadio ',' aun ',' actualmente ',' adelante ',
       ' ademas ',' afirmo ',' agrego ',' ahi ',' ahora ',
-      ' al ',' algun ',' algo ',' alguna ',' algunas ',
+      ' al ',' algun ',' algo ', ' alli ', ' alla ',' alguna ',' algunas ',
       ' alguno ',' algunos ',' alrededor ',' ambos ',' ante ',
       ' anterior ',' antes ',' apenas ',' aproximadamente ',
-      ' aqui ',' asi ',' aseguro ',' aunque ',' ayer ',' bajo ',
+      ' aqui ',' asi ', ' area ', ' mejor ', ' falta ' ,' aseguro ', ' atencion ',' aunque ',' ayer ',' bajo ',
       ' bien ',' buen ',' buena ',' buenas ',' bueno ',
-      ' buenos ',' como ',' cada ',' casi ',' cerca ',
+      ' buenos ',' como ',' cada ',' casi ', ' carabobo ',' cerca ',
       ' cierto ',' cinco ',' comento ',' como ',' con ',
       ' conocer ',' considero ',' considera ',' contra ',
-      ' cosas ',' creo ',' cual ',' cuales ',' cualquier ',
+      ' cosas ',' creo ',' cual ', ' centro ', ' ciudad ',' cuales ',' cualquier ',
       ' cuando ',' cuanto ',' cuatro ',' cuenta ',' da ',
       ' dado ',' dan ',' dar ',' de ',' debe ',' deben ',
       ' debido ',' decir ',' dejo ',' del ',' demas ',
       ' dentro ',' desde ',' despues ',' dice ',' dicen ',
-      ' dicho ',' dieron ',' diferente ',' diferentes ',
-      ' dijeron ',' dijo ',' dio ',' donde ',' dos ',
+      ' dicho ',' dieron ',' diferente ',' diferentes ', ' dias ', ' dia ',
+      ' disfrutar ', ' disfrute ',' disfrutando ', ' espacio ', ' estado ',
+      ' dijeron ',' dijo ',' dio ',' donde ',' dos ', 
       ' durante ',' e ',' ejemplo ',' el ',' ella ',' ellas ',
       ' ello ',' ellos ',' embargo ',' en ',' encuentra ',
       ' entonces ',' entre ',' era ',' eran ',' es ',' esa ',
       ' esas ',' ese ',' eso ',' esos ',' esta ',' estan ',
       ' esta ',' estaba ',' estaban ',' estamos ',' estar ',
       ' estara ',' estas ',' este ',' estes ', ' esto ',' estos ',
-      ' estoy ',' estuvo ',' ex ',' existe ',' existen ',
+      ' estoy ',' estuvo ',' ex ', ' excelente ',' existe ',' existen ',
       ' explico ',' expreso ',' fin ',' fue ',' fuera ',
       ' fueron ',' gran ',' grandes ',' ha ',' habia ',
       ' habian ',' haber ',' habra ',' hace ',' hacen ',
       ' hacer ',' hacerlo ',' hacia ',' haciendo ',' han ',
       ' hasta ',' hay ',' haya ',' he ',' hecho ',' hemos ',
       ' hicieron ',' hizo ',' hoy ',' hubo ',' igual ',
-      ' incluso ',' indico ',' informo ',' junto ',' la ',
-      ' lado ',' las ',' le ',' les ',' llego ',' lleva ',
+      ' incluso ',' indico ',' informo ', ' instalaciones ',' junto ',' la ',
+      ' lado ',' las ',' le ',' les ',' llego ',' lleva ' , ' llevo ',
       ' llevar ',' lo ',' los ',' luego ',' lugar ',' mas ',
       ' manera ',' manifesto ',' mayor ',' me ',' mediante ',
       ' mejor ',' menciono ',' menos ',' mi ',' mientras ',
@@ -301,7 +301,8 @@ class GestorContenidoController extends Controller
       ' nuestro ',' nuestros ',' nueva ',' nuevas ',' nuevo ',
       ' nuevos ',' nunca ',' o ',' ocho ',' otra ',' otras ',
       ' otro ',' otros ',' pais ',' para ',' parece ',' parte ',
-      ' partir ',' pasada ',' pasado ',' pero ',' pesar ',
+      ' partir ',' pasada ', ' pasar ', ' pasarla ', ' pasarlo ', 
+      ' pasan ', ' pasado ',' pero ',' pesar ', ' pasara ',
       ' poca ',' pocas ',' poco ',' pocos ',' podemos ',
       ' podra ',' podran ',' podria ',' podrian ',' poner ',
       ' por ',' porque ',' posible ',' posee ',' proximo ',' proximos ',
@@ -310,25 +311,38 @@ class GestorContenidoController extends Controller
       ' propios ',' pudo ',' pueda ',' puede ',' pueden ' ,' puedes ',
       ' pues ', ' pudiera ',' que ',' que ',' quedo ',' queremos ',
       ' quien ',' quien ',' quienes ',' quiere ',' realizo ',
-      ' realizado ',' realizar ',' respecto ',' si ',' solo ',
+      ' realizado ',' realizar ', ' recomendado ', ' recomiendo ',' respecto ',' si ',' solo ',
       ' se ',' senalo ',' sea ',' sean ',' segun ',' segunda ',
       ' segundo ',' seis ',' ser ',' sera ',' seran ',' seria ',
-      ' si ',' sido ',' siempre ',' siendo ',' siete ',
-      ' sigue ',' siguiente ',' sin ',' sino ',' sobre ',
+      ' si ',' sido ',' siempre ',' siendo ',' siete ',' ofrece ',
+      ' servicio ', ' servicios ', ' sitio ', ' sitios ',' llegar ', ' opcion ',
+      ' sigue ',' siguiente ',' sin ',' sino ',' sobre ', ' etc ' ,
       ' sola ',' solamente ',' solas ',' solo ',' solos ',
       ' son ',' su ',' sus ',' tal ',' tambien ',' tampoco ',
       ' tan ',' tanto ',' tenia ',' tendra ',' tendran ',
       ' tenemos ',' tener ',' tenga ',' tengo ',' tenido ',
-      ' tercera ',' tiene ',' tienen ',' toda ',' todas ',
-      ' todavia ',' todo ',' todos ',' total ',' tras ',
+      ' tercera ',' tiene ',' tienen ',' toda ',' todas ', ' general ',
+      ' todavia ',' todo ',' todos ',' total ',' tras ', ' ubicado ' , ' ubicacion ',
       ' trata ',' traves ',' tres ',' tuvo ', ' ubicado ',' un ',' una ',
-      ' unas ',' uno ',' unos ',' usted ',' va ',' vamos ', ' venezuela ',
-      ' van ',' varias ',' varios ',' veces ',' ver ',' vez ',
-      ' y ',' ya ',' yo ', '  '), ' ',$string);
+      ' unas ',' uno ',' unos ', ' ubicacion ',' usted ',' va ',' valencia ',' vamos ', ' venezuela ', 
+      ' valenciano ', ' valenciana ', ' venezolano ', ' venezolana ', ' km ',
+      ' van ',' varias ',' varios ',' veces ',' ver ',' vez ', ' zona ', ' zonas ',
+      ' ya ',' yo ', '  ', ' a ', ' b ', ' c ', ' d ', ' e ', ' f ', ' g ', 
+      ' h ', ' i ', ' j ', ' k ', ' m ', ' n ', ' ñ ', ' o ', ' p ', ' q ', ' r ',
+      ' s ', ' t ', ' u ', ' w ', ' x ', ' y ', ' z '), ' ',$string);
 
-     $string = str_replace('  ', ' ', $string);
+     $string = preg_replace('/\s+/', ' ', $string);  
       return $string;
   }
+  
+    public function norma($vector){
+        $total = 0;
+        foreach ($vector as $key => $value) {
+          $total = $total + ($value*$value);
+        }
+        $total= sqrt($total);
+        return($total);
+    }
   
    public function normalise($doc) {
         $total = 0;
@@ -355,8 +369,10 @@ class GestorContenidoController extends Controller
         $place_id = $request['place_id'];
         $documento = Documento::where('place_id','=',$place_id)->first();
         $comentarios = Comentario::where('place_id','=',$place_id)->get();
+        $recomendaciones = self::randomSite($documento->cluster,$place_id,3);
         $resul['status'] = 'OK';
         $resul['documento'] = $documento;
+        $resul['recomendaciones'] = $recomendaciones;
         $resul['comentario'] = $comentarios->map(function ($value) {
                                     $value->avatarColor = self::avatarColor();
                                     return $value;
@@ -364,7 +380,7 @@ class GestorContenidoController extends Controller
         return $resul;
     }
     
-    public function public(Request $request)
+    public function publicar(Request $request)
     {
         $place_id = $request['place_id'];
         $text = $request['comentario'];
@@ -382,44 +398,102 @@ class GestorContenidoController extends Controller
         return $resul;
     }
     
-    public function aggregate(){
+    public function aggregate($nuevo){
         $documentos = Documento::all();
         $resultado = array();
         foreach($documentos as $documento){
-            $googlePlace = GooglePlaces::placeDetails($documento->place_id,['language'=>'es']);
-            $place = $googlePlace['result'];
-            foreach($place['reviews'] as $review){
-                $comentario = Comentario::firstOrNew(array( 'place_id' => $documento->place_id,
-                                                            'nombre_usuario' => $review['author_name'],
-                                                            'origen' => 'Google',
-                                                            'rating' => $review['rating'],
-                                                            'fecha_publicacion' =>  date("Y-m-d H:i:s", $review['time'])));
-                $comentario->comentario = $review['text'];
-                $comentario->nombre_usuario = $review['author_name'];
-                $comentario->origen = 'Google';
-                $comentario->rating = $review['rating'];
-                $comentario->fecha_publicacion =date("Y-m-d H:i:s", $review['time']);
-                $comentario->save();
+            if($nuevo){
+                $googlePlace = GooglePlaces::placeDetails($documento->place_id,['language'=>'es']);
+                $place = $googlePlace['result'];
+                if(isset($place['rating'])){
+                    foreach($place['reviews'] as $review){
+                        $comentario = Comentario::firstOrNew(array( 'place_id' => $documento->place_id,
+                                                                    'nombre_usuario' => $review['author_name'],
+                                                                    'origen' => 'Google',
+                                                                    'rating' => $review['rating'],
+                                                                    'fecha_publicacion' =>  date("Y-m-d H:i:s", $review['time'])));
+                        $comentario->comentario = $review['text'];
+                        $comentario->nombre_usuario = $review['author_name'];
+                        $comentario->origen = 'Google';
+                        $comentario->rating = $review['rating'];
+                        $comentario->fecha_publicacion =date("Y-m-d H:i:s", $review['time']);
+                        $comentario->save();
+                    }
+                }
             }
             $comentarios = Comentario::where('place_id','=',$documento->place_id)->pluck('comentario');
             $comentarios->push($documento->description);
             $comentarios->push($documento->direccion);
             $palabras = self::palabrasClave($comentarios);
             $arrayWord = explode(' ', $palabras);
-            $stemmer = new Spanish();
+
             foreach($arrayWord as $word_id => $word){
-                $arrayWord[$word_id] = $stemmer->stem($word);
+                $arrayWord[$word_id] = Stemmer::stemm($word);
             }
             $palabras = implode(' ', $arrayWord);
             $documento->palabras_clave = $palabras;
             $documento->save();
-            return $palabras;
         }
     }
     
     private function avatarColor(){
-        $colores = ['red','pink','purple','deep-purple','indigo','blue','light-blue','cyan','teal','green','light-green','lime','yellow','amber','orange','deep-orange','brown','blue-grey','grey'];
+        $colores = ['red','pink','purple','deep-purple','indigo','blue',
+                    'light-blue','cyan','teal','green','light-green','lime',
+                    'yellow','amber','orange','deep-orange','brown',
+                    'blue-grey','grey'];
         return array_random($colores);
+    }
+    
+    public function randomSite($cluster, $place_id, $num){
+        return Documento::where(array(array('cluster','=' ,$cluster),array('place_id','!=' ,$place_id)))->inRandomOrder()->take($num)->get();
+    }
+    public function metrics(){
+        $sim_promedio = self::similitud_promedio();
+        $resul['status'] = 'OK';
+        $resul['items'] = $sim_promedio['resul'];
+        return $resul;
+    }
+    public function similitud_promedio(){
+        $resul = array();
+        $documentos = Documento::select('id','cluster')->get();
+        $cluster = $documentos->groupBy('cluster');
+        //$coordenadas = array();
+        foreach($cluster as $cluster_id => $documentos_id){
+            $sim_promedio = 0;
+            $indices = $documentos_id->map(function ($item, $key) {
+                                        return $item->id; 
+                                    });
+            $coordenadas = DB::table('coleccions')->whereIn('documento_id', $indices)
+                                            ->select('documento_id','termino','tf_idf')
+                                            ->get()
+                                            ->groupBy('documento_id')
+                                            ->map(function ($item, $key) {
+                                                return $item->pluck('tf_idf','termino'); 
+                                            });
+            foreach($coordenadas as $doc_i => $coordenada_i) {
+                foreach($coordenadas as $doc_j => $coordenada_j) {
+                    //if($doc_i != $doc_j){
+                        $dist = 0;
+                        $total = self::norma($coordenada_i)*self::norma($coordenada_j);
+                        foreach ($coordenada_j as $word => $peso) {
+                            if($coordenada_i->has($word)){
+                                $dist += $coordenada_i[$word]*$peso;
+                            }
+                        }
+                        $dist = $dist/$total;
+                        $sim_promedio = $sim_promedio + $dist;
+                    //}
+                }
+            }
+            $sim_promedio = $sim_promedio/ ($coordenadas->count() * $coordenadas->count());
+            $item['similitud'] = $sim_promedio;
+            $item['cluster'] = $cluster_id;
+            $item['cantidad'] = $documentos_id->count();
+            array_push($resul,$item);
+        }
+        $resultado['resul'] = $resul;
+        $resultado['coordenadas'] = $coordenadas;
+        return $resultado;
     }
     
 }
