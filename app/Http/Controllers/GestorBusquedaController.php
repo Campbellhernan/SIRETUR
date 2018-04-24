@@ -21,10 +21,10 @@ class GestorBusquedaController extends Controller
         
         $query = trim(self::limpiar($request['textarea']));
         $terms = explode(' ', $query);
-        $stemmer = new Spanish();
+        //$stemmer = new Spanish();
         
         foreach($terms as $word_id => $word){
-            $terms[$word_id] = $stemmer->stem($word);
+            $terms[$word_id] = Stemmer::stemm($word);
         }
         $vector = array();
         foreach($terms as $idTerm => $term){

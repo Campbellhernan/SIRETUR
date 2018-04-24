@@ -29,6 +29,8 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('recommendation', 'GestorRecomendacionController@recommendation');
     Route::post('content', 'GestorContenidoController@content');
     Route::get('metrics', 'GestorContenidoController@metrics');
+    Route::get('permit', 'GestorContenidoController@permit');
+    Route::post('updateUser', 'GestorContenidoController@UpdatePermit');
     Route::patch('settings/profile', 'Settings\UpdateProfile');
     Route::patch('settings/password', 'Settings\UpdatePassword');
 });

@@ -5,15 +5,21 @@
       style="min-height: 0;"
       grid-list-lg
     >
+     
      <v-layout row wrap>
+        <v-card color="grey lighten-4" flat style="width:100%">
+          <v-card-title primary-title>
+              <div class="display-1 dark-1 grey--text text-xs-center">Añadir Contenido</div>
+          </v-card-title>
+        </v-card>
      <v-flex xs12>
         <v-card height="300px" width="100%" >
           <v-container>                
             <v-layout>
               <input id="pac-input" class="controls" type="text" placeholder="Buscar">
               <div id="infowindow-content">
-                <span id="place-name"  class="title"></span><br>
-                <span id="place-address"></span>
+                <span id="place-name" class="title">{{form.name}}</span><br>
+                <span id="place-address">{{form.address}}</span>
               </div>
               <google-map
                  name="example"
@@ -26,20 +32,65 @@
           <v-card color="grey lighten-4" flat>
           <progress-bar :show="form.busy"></progress-bar>
           <v-card-title primary-title>
-              <div class="headline">Añadir contenido</div>
+              <div class="headline">Lugar Seleccionado</div>
           </v-card-title>
-          <v-container grid-list-md>
-            <form @submit.prevent="append" @keydown="form.onKeydown($event)">
-              <v-text-field v-model="form.place_id" box disabled v-validate="'required'" label="Place ID"></v-text-field>
-              <has-error :form="form" :field="form.place_id"></has-error> 
-              <v-text-field v-model="form.descripcion" box multi-line label="Descripcion"></v-text-field>
-              <v-text-field v-model="form.fuente" box label="URL Fuente"></v-text-field>
-              <v-layout>
-                <v-spacer></v-spacer>
-                <v-btn xs2 type="submit"  color="primary"> Aceptar</v-btn>
-              </v-layout>
-            </form>
-          </v-container>
+          <v-card-text>
+            <v-layout >
+              <v-flex xs10 offset-xs1>
+                <form @submit.prevent="append" @keydown="form.onKeydown($event)">
+                  <text-input
+                    :form="form"
+                    :label="'Nombre del sitio'"
+                    :v-errors="errors"
+                    :value.sync="form.name"
+                    box
+                    readonly
+                    name="Nombre del sitio"
+                    v-validate="'required'"
+                  ></text-input>
+                  <text-input
+                    :form="form"
+                    :label="'Place ID'"
+                    :v-errors="errors"
+                    :value.sync="form.place_id"
+                    box
+                    readonly
+                    name="Place ID"
+                    v-validate="'required'"
+                  ></text-input>
+                  <text-input
+                    :form="form"
+                    :label="'Dirección'"
+                    :v-errors="errors"
+                    :value.sync="form.address"
+                    box
+                    readonly
+                    name="Dirección"
+                    v-validate="'required'"
+                  ></text-input>
+                  <text-input
+                    :form="form"
+                    :label="'Descripcion'"
+                    :v-errors="errors"
+                    :value.sync="form.descripcion"
+                    box
+                    multiline
+                    name="Descripcion"
+                  ></text-input>
+                  <text-input
+                    :form="form"
+                    :label="'URL Fuente'"
+                    :v-errors="errors"
+                    :value.sync="form.fuente"
+                    box
+                    multi-line
+                    name="URL Fuente"
+                  ></text-input>
+                  <submit-button :block="true" :form="form" :label="'Registrar'" :color="'primary'"></submit-button>
+                </form>
+              </v-flex>
+            </v-layout>
+          </v-card-text>
         </v-card>
       </v-flex>
       </v-layout>
@@ -69,18 +120,20 @@ export default {
     form: new Form({
       place_id: '',
       descripcion: '',
+      name:'',
+      address:'',
       fuente:''
     }),
     busy: false,
     documentos: {}
   }),
-
   mounted: function () {
     this.getDocumento();
   },
   methods: {
     async append () {
       if (await this.formHasErrors()) return
+
       this.busy = true
       
       var id = this.form.place_id;
@@ -95,6 +148,8 @@ export default {
           	this.form.place_id = '';
           	this.form.descripcion = '';
           	this.form.fuente = '';
+          	this.form.name = '';
+          	this.form.address = '';
           	if (response.data.status == 'OK') {
                 store.dispatch('responseMessage', {
                   type: 'success',
@@ -180,10 +235,9 @@ export default {
                 });
                 marker.setVisible(true);
                 _this.form.place_id = place.place_id;
-      
-                document.getElementById('place-name').textContent = place.name;
-                document.getElementById('place-address').textContent =
-                    place.formatted_address;
+                _this.form.name = place.name;
+                _this.form.address = place.formatted_address;
+  
                 infowindow.setContent(document.getElementById('infowindow-content'));
                 infowindow.open(map, marker);
               });

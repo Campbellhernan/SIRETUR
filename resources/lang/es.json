@@ -37,5 +37,6 @@
   "cluster": "Clasificar contenido",
   "recommendation":"Recomendaciones",
   "permits":"Permisos",
-  "metrics":"Métricas"
+  "metrics":"Métricas",
+  "permit":"Permisos"
 }

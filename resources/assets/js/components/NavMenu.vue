@@ -2,8 +2,12 @@
       <v-navigation-drawer
       fixed
       clipped
-      app
+      disable-resize-watcher
       hide-overlay
+      persistent 
+      app
+      v-model="draw"
+      v-if="authenticated"
     >
     <v-list>
       <template  v-for="(item, i) in items">
@@ -43,6 +47,12 @@
 <script>
 import { mapGetters } from 'vuex'
 export default {
+  props: {
+    draw: {
+      type: Boolean,
+      required: true
+    }
+  },
   data () {
     return {
       name: this.$t('nav_menu_title'),
@@ -64,15 +74,16 @@ export default {
         { title: 'Clasificar contenido', icon: 'storage', route: { name: 'cluster' }, permiso:this.obtenerPermisoExperto() },
         { divider: this.obtenerPermisoExperto() },
         { heading: 'Configuracion', permiso:this.obtenerPermisoExperto()},
-        { title: 'Métricas', icon: 'equalizer', route: { name: 'metrics' }, permiso:this.obtenerPermiso() },
+        { title: 'Métricas', icon: 'equalizer', route: { name: 'metrics' }, permiso:this.obtenerPermisoExperto() },
+        { title: 'Permisos de usuario', icon: 'supervisor_account', route: { name: 'permit' }, permiso:this.obtenerPermisoExperto() },
       ]
   },
   methods:{
     obtenerPermiso: function(){
-      return this.user.perfil =='Experto' || this.user.perfil == 'Administrador';
+      return this.authenticated && (this.user.perfil =='Experto' || this.user.perfil == 'Administrador');
     },
     obtenerPermisoExperto: function(){
-      return this.user.perfil =='Experto';
+      return this.authenticated && (this.user.perfil =='Experto');
     }
   }
 }

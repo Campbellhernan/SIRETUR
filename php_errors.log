@@ -73,3 +73,8 @@
 [10-Mar-2018 16:08:11 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/laravel/framework/src/Illuminate/Support/Collection.php on line 733
 [19-Mar-2018 03:14:23 UTC] PHP Fatal error:  Trait 'App\Http\Controllers\Auth\SendsPasswordResetEmails' not found in /home/ubuntu/workspace/app/Http/Controllers/Auth/ForgotPasswordController.php on line 13
 [19-Mar-2018 03:14:46 UTC] PHP Fatal error:  Trait 'App\Http\Controllers\Auth\SendsPasswordResetEmails' not found in /home/ubuntu/workspace/app/Http/Controllers/Auth/ForgotPasswordController.php on line 13
+[07-Apr-2018 02:30:01 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/symfony/console/Application.php on line 1224
+[19-Apr-2018 18:29:40 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/laravel/framework/src/Illuminate/Auth/EloquentUserProvider.php on line 10
+[19-Apr-2018 18:34:04 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/laravel/framework/src/Illuminate/Routing/Router.php on line 152
+[19-Apr-2018 19:46:40 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/symfony/routing/RouteCompiler.php on line 105
+[21-Apr-2018 04:13:18 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/storage/framework/views/f22fc25bafd7fa0cf1ec58fe7204351f2ecb20d6.php on line 1

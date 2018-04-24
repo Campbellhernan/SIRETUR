@@ -10,6 +10,7 @@ export default ({ authGuard, guestGuard }) => [
     { path: '/cluster', name: 'cluster', component: require('~/pages/cluster.vue') },
     { path: '/content', name: 'content', component: require('~/pages/content.vue') },
     { path: '/metrics', name: 'metrics', component: require('~/pages/metrics.vue') },
+    { path: '/permit', name: 'permit', component: require('~/pages/permit.vue') },
     { path: '/settings',
       component: require('~/pages/settings/index.vue'),
       children: [

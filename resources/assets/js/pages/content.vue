@@ -25,9 +25,9 @@
             </v-container>
           </v-card-title>
           <v-container grid-list-md>
-            <blockquote>
+            <div class="blockquote mb-5">
             {{this.documento.description}}
-            </blockquote>
+            </div>
             <v-layout row>
               <v-btn flat color="primary" v-if="this.documento.fuente_descripcion != undefined" v-bind:href="this.documento.fuente_descripcion" >Fuente</v-btn>
               <v-spacer></v-spacer>
@@ -61,8 +61,8 @@
                 <v-flex xs4
                 v-for="suggestion in suggestions"
                 :key="suggestion.nombre">
-                  <v-card color="blue lighten-4" >
-                    <v-card-title column>
+                  <v-card flat tile>
+                    <v-card-title column class="indigo white--text text-xs-center">
                       <v-layout align-center row spacer>
                           <div class="title" primary-title>{{suggestion.nombre}}</div>
                       </v-layout>
@@ -118,16 +118,12 @@
                 </v-card-title>
                 <v-card-text>
                   <div class="subheading">{{card.comentario}}</div>
-                  <v-divider></v-divider>
-                  <v-layout align-center row spacer>
-                    <v-flex>
-                      <div class="caption" >{{card.fecha_publicacion}}</div>
-                    </v-flex>
-                    <v-flex xs1>
-                      <div class="caption" >{{card.origen}}</div>
-                    </v-flex>
-                  </v-layout>
                 </v-card-text>
+                <v-card-actions>
+                    <div class="caption" >{{card.fecha_publicacion}}</div>
+                    <v-spacer></v-spacer>
+                    <div class="caption" >{{card.origen}}</div>
+                </v-card-actions>
               </v-card>
             </v-flex>
               </v-layout>

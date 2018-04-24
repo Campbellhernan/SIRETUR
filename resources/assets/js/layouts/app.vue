@@ -1,14 +1,6 @@
 <template>
   <v-app light>
-    <v-navigation-drawer 
-      v-if="authenticated" 
-      persistent 
-      v-model="drawer" 
-      enable-resize-watcher 
-      app
-    >
-      <nav-menu></nav-menu>
-    </v-navigation-drawer>
+    <nav-menu v-if="authenticated" :draw="drawer"></nav-menu>
     <tool-bar v-on:toggleDrawer="drawer = !drawer" :drawer="drawer"></tool-bar>
     <main>
       <v-content>

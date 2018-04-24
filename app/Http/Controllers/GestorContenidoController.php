@@ -13,12 +13,6 @@ use App\Custom\Kmeans as Kmeans;
 use App\User as User;
 use GooglePlaces;
 use Auth;
-/*use NlpTools\Clustering\KMeans;
-use NlpTools\Similarity\CosineSimilarity;
-use NlpTools\Clustering\CentroidFactories\MeanAngle;
-use NlpTools\Documents\TrainingSet;
-use NlpTools\Documents\TokensDocument;
-use NlpTools\FeatureFactories\DataAsFeatures;*/
 
 use DB; 
 
@@ -109,9 +103,9 @@ class GestorContenidoController extends Controller
         $object = self::saveCollection($collection,$dictionary);
         $tset = $object['tset'];
         $arrayID = $object['arrayID'];
-        $k = $request['k'];
+        //$k = $request['k'];
         
-        self::kmeans($tset,$k,$arrayID);
+        self::kmeans($tset,/*$k,*/$arrayID);
         $sim_promedio = self::similitud_promedio();
         $resul['status'] = 'OK';
         $resul['items'] = $sim_promedio['resul'];
@@ -170,16 +164,16 @@ class GestorContenidoController extends Controller
         return $resul;
     }
     
-    public function kmeans($tset, $k, $arrayID){
+    public function kmeans($tset, /*$k,*/ $arrayID){
         
         $dimensions = Diccionario::count();
-        $centroides = DB::table('coleccions')->whereIn('documento_id', [1, 88, 81, 21, 9, 34, 102])
-                                            ->select('documento_id','termino','tf_idf')
-                                            ->get()
-                                            ->groupBy('documento_id')
-                                            ->map(function ($item, $key) {
-                                                return $item->pluck('tf_idf','termino'); 
-                                            });
+        $centroides = DB::table('centroides')->select('centroide','termino','valor')
+                                    ->get()
+                                    ->groupBy('centroide')
+                                    ->map(function ($item, $key) {
+                                        return $item->pluck('valor','termino'); 
+                                    });
+                                            
         $clasificacion = Kmeans::kmeans_inicial($tset,$dimensions,$centroides);
         //$clasificacion = Kmeans::kmeans($tset,$k,$dimensions);
         $clusters = $clasificacion['mapping'];
@@ -451,8 +445,22 @@ class GestorContenidoController extends Controller
         $sim_promedio = self::similitud_promedio();
         $resul['status'] = 'OK';
         $resul['items'] = $sim_promedio['resul'];
+        $resul['centroides'] = DB::table('centroides')->select('centroide','termino','valor')
+                                    ->get()
+                                    ->groupBy('centroide')
+                                    ->map(function ($item, $key) {
+                                        return $item->pluck('valor','termino'); 
+                                    });
         return $resul;
     }
+    
+    public function permit(){
+        $user = User::all();
+        $resul['status'] = 'OK';
+        $resul['items'] = $user;
+        return $resul;
+    }
+    
     public function similitud_promedio(){
         $resul = array();
         $documentos = Documento::select('id','cluster')->get();
@@ -495,5 +503,10 @@ class GestorContenidoController extends Controller
         $resultado['coordenadas'] = $coordenadas;
         return $resultado;
     }
-    
+    public function UpdatePermit(Request $request)
+    {
+        $email = $request['email'];
+        $perfil = $request['perfil'];
+        $user = User::where('email', $email)->update(['perfil'=>$perfil]);
+    }
 }

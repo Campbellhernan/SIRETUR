@@ -1,46 +1,49 @@
 <template>
-      <v-container fluid grid-list-md class="grey lighten-4">
+      <v-container grid-list-md class="grey lighten-4">
         <progress-bar :show="busy"></progress-bar>
         <form @submit.prevent="newSearch" @keydown="form.onKeydown($event)">
-        <v-layout row pa-4>
-          <div class="headline grey--tex t ma-2">
+        <v-layout row pa-3 >
+          <div class="title grey--text pt-3 mr-3 hidden-xs-only">
             {{ title }}
           </div>
-              <v-text-field column align-center ma-4
-              light
-              solo
-              v-model="form.textarea"
-              prepend-icon="search"
-              placeholder="Buscar"
-            ></v-text-field>
-            <v-btn color="primary" type="submit">Buscar</v-btn>
+          <v-text-field column align-center
+            light
+            solo
+            v-on:mouseover="change"
+            v-on:mouseleave="change"
+            v-bind:class="{'elevation-5' : apply}"
+            v-model="form.textarea"
+            append-icon="search"
+            :append-icon-cb="search"
+            placeholder="Buscar"
+          ></v-text-field>
         </v-layout>
         </form>
         <v-divider></v-divider>
-        <v-flex xs10 offset-xs1 mt-3>
           <v-layout row wrap v-if="found">
-            <v-flex xs12
-              v-for="card in cards"
-              :key="card.nombre"
-            >
-              <v-card>
-              <v-card-title column primary-title>
-                  <div class="headline" >{{card.nombre}}</div>
-              </v-card-title>
-              <v-card-text>
-                  <div class="body-1">{{ card.description.substr(0,300) + "..."}}</div>
-              </v-card-text>
-              <v-card-actions>
-                <v-flex>
-                  <v-btn flat color="primary" @click.native="content(card)">Ver mas</v-btn>
-                  <v-btn flat color="primary" v-bind:href="card.url" >Ver en Google Map</v-btn>
-                </v-flex>
-                <v-flex xs2>
-                    <star-rating read-only v-bind:increment="0.001" v-bind:rating="parseFloat(card.rating)" :star-size="20"></star-rating>
-                </v-flex>
-              </v-card-actions>
-              </v-card>
-            </v-flex>
+          <v-flex
+            v-for="card in cards"
+            :key="card.nombre"
+            @click="content(card)"
+            v-on:mouseover="changeFocus(card)"
+            v-on:mouseleave="changeFocus(card)"
+            v-bind:class="{'elevation-5' : card.focus}"
+            class="ma-1"
+          >
+            <v-card >
+            <v-card-title column primary-title>
+                <div class="headline" >{{card.nombre}}</div>
+            </v-card-title>
+            <v-card-text>
+                <div class="body-1">{{ card.description.substr(0,300) + "..."}}</div>
+            </v-card-text>
+            <v-card-actions>
+              <v-btn flat color="primary" @click.native="content(card)">Detalles</v-btn>
+              <v-spacer class="hidden-xs-only" ></v-spacer>
+              <star-rating read-only class="" v-bind:increment="0.001" v-bind:rating="parseFloat(card.rating)" :star-size="20"></star-rating>
+            </v-card-actions>
+            </v-card>
+          </v-flex>
             <v-flex>
               <div class="text-xs-center">
                 <v-pagination :length="this.pages" v-model="form.current_page" @next="search()" @previous="search()" @input="search()" circle></v-pagination>
@@ -57,7 +60,6 @@
               </v-card>
             </v-flex>
           </v-layout>
-        </v-flex>
 
       </v-container>
 </template>
@@ -79,7 +81,7 @@ export default {
     cards: [],
     busy: false,
     found:false,
-    
+    apply: false,
     form: new Form({
       textarea: '',
       current_page: 1,
@@ -98,8 +100,15 @@ export default {
 	},
 
   methods: {
+    change() {
+      this.apply = !this.apply;
+    },
+    changeFocus(card) {
+      card.focus = !card.focus;
+    },
      async search () {
       if (await this.formHasErrors()) return
+      this.$vuetify.goTo(0, {duration: 500,offset:0,easing:'linear'});
       this.busy = true
       await this.form.post('/api/search') 
       .then(response => { 

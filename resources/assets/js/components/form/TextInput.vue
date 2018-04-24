@@ -10,6 +10,7 @@
       :prepend-icon="prepend"
       :box="box"
       :multi-line="multiline"
+      :readonly="readonly"
       v-model="_value"
     ></v-text-field>
     <has-error :form="form" :field="name"></has-error>
@@ -52,6 +53,10 @@ export default {
       type: String
     },
     box: {
+      type: Boolean,
+      default: false
+    },
+    readonly: {
       type: Boolean,
       default: false
     },
