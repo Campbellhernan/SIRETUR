@@ -18,6 +18,8 @@ class CreateColeccionsTable extends Migration
             $table->string('termino');
             $table->decimal('tf_idf', 28, 10);
             $table->timestamps();
+            
+            $table->primary(['termino','documento_id']);
         });
     }
 

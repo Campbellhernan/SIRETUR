@@ -23,7 +23,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     });
     Route::post('append', 'GestorContenidoController@append');
     Route::post('public', 'GestorContenidoController@publicar');
-    Route::post('cluster', 'GestorContenidoController@cluster');
+    Route::post('cluster', 'GestorGruposController@cluster');
     Route::post('search', 'GestorBusquedaController@search');
     Route::get('documents', 'GestorContenidoController@documents');
     Route::post('recommendation', 'GestorRecomendacionController@recommendation');

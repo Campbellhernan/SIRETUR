@@ -14,11 +14,12 @@ class CreateCentroidesTable extends Migration
     public function up()
     {
         Schema::create('centroides', function (Blueprint $table) {
-            $table->increments('id');
             $table->integer('centroide');
             $table->string('termino');
             $table->decimal('valor',28, 10);
             $table->timestamps();
+            
+            $table->primary(['centroide','termino']);
         });
     }
 

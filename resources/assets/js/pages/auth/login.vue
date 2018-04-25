@@ -83,7 +83,10 @@ export default {
 
       // Submit the form.
       const { data } = await this.form.post('/api/login')
-
+      .catch(function (error) {
+        console.log(error)
+      });
+   
       // Save the token.
       this.$store.dispatch('saveToken', {
         token: data.token,
