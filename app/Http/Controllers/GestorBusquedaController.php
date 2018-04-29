@@ -13,6 +13,7 @@ use App\Caracteristica as Caracteristica;
 use DB; 
 use App\User as User;
 use Auth;
+use App\Custom\Stemmer as Stemmer;
 
 class GestorBusquedaController extends Controller
 {
@@ -20,23 +21,14 @@ class GestorBusquedaController extends Controller
         
         $query = trim(self::limpiar($request['textarea']));
         $terms = explode(' ', $query);
-        $stemmer = new Spanish();
+        //$stemmer = new Spanish();
         
         foreach($terms as $word_id => $word){
-            $terms[$word_id] = $stemmer->stem($word);
+            $terms[$word_id] = Stemmer::stemm($word);
         }
-
         $vector = array();
-        
-        $docCount = Documento::all()->count();
-        
         foreach($terms as $idTerm => $term){
-            $cantidad = Diccionario::where('termino', '=', $term)->first();
-            if($cantidad != null){
-                $vector[$term] = (1 * log($docCount / $cantidad->cantidad, 2));
-            }else{
-                $vector[$term] = (1 * log($docCount , 2)); 
-            }
+            $vector[$term] = 0.8;
         }
         
         $vector = self::normalise($vector);
@@ -50,7 +42,7 @@ class GestorBusquedaController extends Controller
             $coordenada = DB::table('centroides')->where('centroide', $centroide->centroide)
                                                                         ->pluck('valor','termino')
                                                                         ->map(function ($item, $key) {return floatval($item);});
-            $coordenadas[$centroide->centroide] = $coordenada;
+            //$coordenadas[$centroide->centroide] = $coordenada;
             $dist = 0;
             $total = self::norma($vector)*self::norma($coordenada);
             foreach ($vector as $word => $peso) {
@@ -65,21 +57,53 @@ class GestorBusquedaController extends Controller
               $cluster = $centroide->centroide;
             }
         }
+        
         $page = $request['current_page'];
-        $documentos = Documento::where('cluster','=' ,$cluster)->paginate(10,['*'],'page',$page);
-        $documentos->appends(['query' => $query])->links();
+        $perPage = $request['perPage'];
+        
+        $resul = self::searchIntoCluster($vector,$cluster,$page);
+
+        $filtrado = $resul['filtrado'];
+        
+        $documentos = $filtrado->forPage($page, $perPage)->values();
+        
         $terminos = DB::table('diccionarios')->whereIn('termino', $terms)->get();
         
         $terminos->each(function ($item, $key) {
             $caracteristica = Caracteristica::firstOrCreate(
-                ['termino' => $item->termino],
-                ['usuario_id' => Auth::user()->id]
-                );
+                ['termino' => $item->termino,'usuario_id' => Auth::user()->id]
+            );
         });
         
         $result['status'] = 'OK';
         $result['documentos'] = $documentos;
+        $result['total'] = $filtrado->count();
         return $result;
+    }
+    
+    public function searchIntoCluster($vector, $cluster, $page){
+        $documentos = Documento::where('cluster','=' ,$cluster)->get();
+        foreach($documentos as $documento) {
+            $coordenada = DB::table('coleccions')->where('documento_id', $documento->id)
+                                                 ->pluck('tf_idf','termino')
+                                                 ->map(function ($item, $key) {return floatval($item);});
+            $dist = 0;
+            $total = self::norma($vector)*self::norma($coordenada);
+            foreach ($vector as $word => $peso) {
+                if($coordenada->has($word)){
+                    $dist += $coordenada[$word]*$peso;
+                }
+            }
+            $dist = $dist/$total;
+            $documento->relevancia = $dist;
+        }
+        
+        $filtrado = $documentos->filter(function ($documento) {
+            return $documento->relevancia > 0;
+        })->values();
+        
+        $resul['filtrado'] = $filtrado;
+        return $resul;
     }
     
     public function norma($vector){

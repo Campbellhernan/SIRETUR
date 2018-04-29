@@ -33,7 +33,7 @@
 
       </v-card-text>
       <v-card-actions>
-        <submit-button :flat="true" :form="form" :label="$t('update')"></submit-button>
+        <submit-button primary :form="form" :label="$t('update')"></submit-button>
       </v-card-actions>
     </form>
   </v-card>

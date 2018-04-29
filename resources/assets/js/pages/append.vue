@@ -5,12 +5,22 @@
       style="min-height: 0;"
       grid-list-lg
     >
+     
      <v-layout row wrap>
+        <v-card color="grey lighten-4" flat style="width:100%">
+          <v-card-title primary-title>
+              <div class="display-1 dark-1 grey--text text-xs-center">Añadir Contenido</div>
+          </v-card-title>
+        </v-card>
      <v-flex xs12>
         <v-card height="300px" width="100%" >
           <v-container>                
             <v-layout>
               <input id="pac-input" class="controls" type="text" placeholder="Buscar">
+              <div id="infowindow-content">
+                <span id="place-name" class="title">{{form.name}}</span><br>
+                <span id="place-address">{{form.address}}</span>
+              </div>
               <google-map
                  name="example"
               ></google-map>
@@ -22,20 +32,65 @@
           <v-card color="grey lighten-4" flat>
           <progress-bar :show="form.busy"></progress-bar>
           <v-card-title primary-title>
-              <div class="headline">Añadir contenido</div>
+              <div class="headline">Lugar Seleccionado</div>
           </v-card-title>
-          <v-container grid-list-md>
-            <form @submit.prevent="append" @keydown="form.onKeydown($event)">
-                <v-flex xs12>
-                    <v-text-field v-model="form.place_id" box disabled v-validate="'required'" label="Place ID"></v-text-field>
-                    <has-error :form="form" :field="form.place_id"></has-error> 
-                </v-flex>
-                <v-flex xs12>
-                    <v-text-field v-model="form.descripcion" box multi-line label="Descripcion"></v-text-field>
-                </v-flex>
-                <v-btn type="submit"  color="primary"> Aceptar</v-btn>
-            </form>
-          </v-container>
+          <v-card-text>
+            <v-layout >
+              <v-flex xs10 offset-xs1>
+                <form @submit.prevent="append" @keydown="form.onKeydown($event)">
+                  <text-input
+                    :form="form"
+                    :label="'Nombre del sitio'"
+                    :v-errors="errors"
+                    :value.sync="form.name"
+                    box
+                    readonly
+                    name="Nombre del sitio"
+                    v-validate="'required'"
+                  ></text-input>
+                  <text-input
+                    :form="form"
+                    :label="'Place ID'"
+                    :v-errors="errors"
+                    :value.sync="form.place_id"
+                    box
+                    readonly
+                    name="Place ID"
+                    v-validate="'required'"
+                  ></text-input>
+                  <text-input
+                    :form="form"
+                    :label="'Dirección'"
+                    :v-errors="errors"
+                    :value.sync="form.address"
+                    box
+                    readonly
+                    name="Dirección"
+                    v-validate="'required'"
+                  ></text-input>
+                  <text-input
+                    :form="form"
+                    :label="'Descripcion'"
+                    :v-errors="errors"
+                    :value.sync="form.descripcion"
+                    box
+                    multiline
+                    name="Descripcion"
+                  ></text-input>
+                  <text-input
+                    :form="form"
+                    :label="'URL Fuente'"
+                    :v-errors="errors"
+                    :value.sync="form.fuente"
+                    box
+                    multi-line
+                    name="URL Fuente"
+                  ></text-input>
+                  <submit-button :block="true" :form="form" :label="'Registrar'" :color="'primary'"></submit-button>
+                </form>
+              </v-flex>
+            </v-layout>
+          </v-card-text>
         </v-card>
       </v-flex>
       </v-layout>
@@ -64,18 +119,21 @@ export default {
   data: () => ({
     form: new Form({
       place_id: '',
-      descripcion: ''
+      descripcion: '',
+      name:'',
+      address:'',
+      fuente:''
     }),
     busy: false,
     documentos: {}
   }),
-
   mounted: function () {
     this.getDocumento();
   },
   methods: {
     async append () {
       if (await this.formHasErrors()) return
+
       this.busy = true
       
       var id = this.form.place_id;
@@ -89,6 +147,9 @@ export default {
           	console.log(response);
           	this.form.place_id = '';
           	this.form.descripcion = '';
+          	this.form.fuente = '';
+          	this.form.name = '';
+          	this.form.address = '';
           	if (response.data.status == 'OK') {
                 store.dispatch('responseMessage', {
                   type: 'success',
@@ -138,62 +199,49 @@ export default {
                   map
                 });
               });
-              
+              var _this = this;
               var input = document.getElementById('pac-input');
-              var searchBox = new google.maps.places.SearchBox(input);
+              var autocomplete = new google.maps.places.Autocomplete(input);
+              autocomplete.bindTo('bounds', map);
+      
               map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
-               map.addListener('bounds_changed', function() {
-          searchBox.setBounds(map.getBounds());
-        });
-
-        var markers = [];
-        // Listen for the event fired when the user selects a prediction and retrieve
-        // more details for that place.
-        searchBox.addListener('places_changed', function() {
-          var places = searchBox.getPlaces();
-
-          if (places.length == 0) {
-            return;
-          }
-
-          // Clear out the old markers.
-          markers.forEach(function(marker) {
-            marker.setMap(null);
-          });
-          markers = [];
-
-          // For each place, get the icon, name and location.
-          var bounds = new google.maps.LatLngBounds();
-          places.forEach(function(place) {
-            if (!place.geometry) {
-              console.log("Returned place contains no geometry");
-              return;
-            }
-            var icon = {
-              url: place.icon,
-              size: new google.maps.Size(71, 71),
-              origin: new google.maps.Point(0, 0),
-              anchor: new google.maps.Point(17, 34),
-              scaledSize: new google.maps.Size(25, 25)
-            };
-
-            // Create a marker for each place.
-            markers.push(new google.maps.Marker({
-              map: map,
-              icon: icon,
-              title: place.name,
-              position: place.geometry.location
-            }));
-
-            if (place.geometry.viewport) {
-              // Only geocodes have viewport.
-              bounds.union(place.geometry.viewport);
-            } else {
-              bounds.extend(place.geometry.location);
-            }
-          });
-          map.fitBounds(bounds);
-        });
+      
+              var infowindow = new google.maps.InfoWindow();
+              var marker = new google.maps.Marker({
+                map: map
+              });
+              marker.addListener('click', function() {
+                infowindow.open(map, marker);
+              });
+      
+              autocomplete.addListener('place_changed', function() {
+                infowindow.close();
+                var place = autocomplete.getPlace();
+                if (!place.geometry) {
+                  return;
+                }
+      
+                if (place.geometry.viewport) {
+                  map.fitBounds(place.geometry.viewport);
+                } else {
+                  map.setCenter(place.geometry.location);
+                  map.setZoom(17);
+                }
+      
+                // Set the position of the marker using the place ID and location.
+                marker.setPlace({
+                  placeId: place.place_id,
+                  location: place.geometry.location
+                });
+                marker.setVisible(true);
+                _this.form.place_id = place.place_id;
+                _this.form.name = place.name;
+                _this.form.address = place.formatted_address;
+  
+                infowindow.setContent(document.getElementById('infowindow-content'));
+                infowindow.open(map, marker);
+              });
+              
               var clickHandler = new ClickEventHandler(map,this.form);
             }
 				});
@@ -232,60 +280,41 @@ export default {
   };
 </script>
    <style>
-
       #map {
         height: 100%;
       }
-
+      /* Optional: Makes the sample page fill the window. */
       html, body {
         height: 100%;
         margin: 0;
         padding: 0;
       }
-
       .controls {
-        margin-top: 10px;
-        border: 1px solid transparent;
-        border-radius: 2px 0 0 2px;
-        box-sizing: border-box;
-        -moz-box-sizing: border-box;
-        height: 32px;
-        outline: none;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-      }
-
-      #pac-input {
         background-color: #fff;
+        border-radius: 2px;
+        border: 1px solid transparent;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        box-sizing: border-box;
         font-family: Roboto;
         font-size: 15px;
         font-weight: 300;
-        margin-left: 12px;
+        height: 29px;
+        margin-left: 17px;
+        margin-top: 10px;
+        outline: none;
         padding: 0 11px 0 13px;
         text-overflow: ellipsis;
         width: 400px;
       }
 
-      #pac-input:focus {
+      .controls:focus {
         border-color: #4d90fe;
       }
-
-      .pac-container {
-        font-family: Roboto;
+      .title {
+        font-weight: bold;
       }
 
-      #type-selector {
-        color: #fff;
-        background-color: #4d90fe;
-        padding: 5px 11px 0px 11px;
-      }
-
-      #type-selector label {
-        font-family: Roboto;
-        font-size: 13px;
-        font-weight: 300;
-      }
-
-      #target {
-        width: 345px;
+      #map #infowindow-content {
+        display: inline;
       }
     </style>

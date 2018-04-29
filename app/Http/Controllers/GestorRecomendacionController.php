@@ -84,5 +84,4 @@ class GestorRecomendacionController extends Controller
         $total= sqrt($total);
         return($total);
     }
-    
 }

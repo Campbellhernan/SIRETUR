@@ -64,3 +64,12 @@
 [30-Nov-2017 17:29:49 UTC] PHP Fatal error:  require(): Failed opening required '/home/ubuntu/workspace/public/../vendor/autoload.php' (include_path='.:/usr/share/php') in /home/ubuntu/workspace/public/index.php on line 24
 [01-Dec-2017 03:28:34 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/composer/ClassLoader.php on line 321
 [04-Dec-2017 18:50:28 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/laravel/framework/src/Illuminate/Support/Collection.php on line 838
+[17-Jan-2018 01:02:33 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/nesbot/carbon/src/Carbon/Carbon.php on line 291
+[17-Jan-2018 01:03:47 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/laravel/framework/src/Illuminate/Support/helpers.php on line 459
+[08-Feb-2018 14:14:03 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/laravel/framework/src/Illuminate/Database/Connection.php on line 458
+[08-Feb-2018 20:12:11 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php on line 1265
+[02-Mar-2018 01:29:53 UTC] PHP Fatal error:  Cannot use NlpTools\Clustering\KMeans as KMeans because the name is already in use in /home/ubuntu/workspace/app/Http/Controllers/GestorContenidoController.php on line 16
+[10-Mar-2018 01:16:00 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/laravel/framework/src/Illuminate/Support/Str.php on line 121
+[10-Mar-2018 16:08:11 UTC] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/ubuntu/workspace/vendor/laravel/framework/src/Illuminate/Support/Collection.php on line 733
+[19-Mar-2018 03:14:23 UTC] PHP Fatal error:  Trait 'App\Http\Controllers\Auth\SendsPasswordResetEmails' not found in /home/ubuntu/workspace/app/Http/Controllers/Auth/ForgotPasswordController.php on line 13
+[19-Mar-2018 03:14:46 UTC] PHP Fatal error:  Trait 'App\Http\Controllers\Auth\SendsPasswordResetEmails' not found in /home/ubuntu/workspace/app/Http/Controllers/Auth/ForgotPasswordController.php on line 13

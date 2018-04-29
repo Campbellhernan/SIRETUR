@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 |
 */
 
+
+
 Route::group(['middleware' => 'auth:api'], function () {
     Route::post('logout', 'Auth\LoginController@logout');
 
@@ -20,12 +22,15 @@ Route::group(['middleware' => 'auth:api'], function () {
         return $request->user();
     });
     Route::post('append', 'GestorContenidoController@append');
-    Route::post('public', 'GestorContenidoController@public');
-    Route::post('cluster', 'GestorContenidoController@cluster');
+    Route::post('public', 'GestorContenidoController@publicar');
+    Route::post('cluster', 'GestorGruposController@cluster');
     Route::post('search', 'GestorBusquedaController@search');
     Route::get('documents', 'GestorContenidoController@documents');
     Route::post('recommendation', 'GestorRecomendacionController@recommendation');
     Route::post('content', 'GestorContenidoController@content');
+    Route::get('metrics', 'GestorContenidoController@metrics');
+    Route::get('permit', 'GestorContenidoController@permit');
+    Route::post('updateUser', 'GestorContenidoController@UpdatePermit');
     Route::patch('settings/profile', 'Settings\UpdateProfile');
     Route::patch('settings/password', 'Settings\UpdatePassword');
 });

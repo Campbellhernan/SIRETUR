@@ -6,5 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Diccionario extends Model
 {
-    //
+    protected $fillable = ['cantidad'];
+    
+    protected $primaryKey = 'termino';
 }

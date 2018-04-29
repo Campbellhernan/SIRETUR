@@ -49,14 +49,19 @@ export default {
     async send () {
       if (await this.formHasErrors()) return
 
-      const { data } = await this.form.post('/api/password/email')
+      await this.form.post('/api/password/email').then(response=>{
+        console.log(response);
+          this.$store.dispatch('responseMessage', {
+            type: 'success',
+            text: response.status
+          })
 
-      this.$store.dispatch('responseMessage', {
-        type: 'success',
-        text: data.status
-      })
+        this.$router.push({ name: 'welcome' })
+      }).catch(error=>{
+        console.log(error);
+      });
 
-      this.$router.push({ name: 'welcome' })
+
     }
   }
 }

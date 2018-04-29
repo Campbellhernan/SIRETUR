@@ -5,7 +5,7 @@
         <progress-bar :show="busy"></progress-bar>
         <form @submit.prevent="login" @keydown="form.onKeydown($event)">
           <v-card-title primary-title>
-            <h3 class="headline mb-0">{{ $t('login') }}</h3>
+            <h3 class="display-1 grey--text">{{ $t('login') }}</h3>
           </v-card-title>
           <v-card-text>
 
@@ -78,11 +78,15 @@ export default {
   methods: {
     async login () {
       if (await this.formHasErrors()) return
+      
       this.busy = true
 
       // Submit the form.
       const { data } = await this.form.post('/api/login')
-
+      .catch(function (error) {
+        console.log(error)
+      });
+   
       // Save the token.
       this.$store.dispatch('saveToken', {
         token: data.token,

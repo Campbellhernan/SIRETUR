@@ -14,10 +14,9 @@ class CreateColeccionsTable extends Migration
     public function up()
     {
         Schema::create('coleccions', function (Blueprint $table) {
-            $table->increments('id');
             $table->integer('documento_id');
             $table->string('termino');
-            $table->decimal('tf_idf');
+            $table->decimal('tf_idf', 28, 10);
             $table->timestamps();
         });
     }
