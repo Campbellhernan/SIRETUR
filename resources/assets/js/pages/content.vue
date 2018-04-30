@@ -3,37 +3,33 @@
       fluid
       style="min-height: 0;"
       grid-list-lg
+      v-resize="onResize"
     >
     <progress-bar :show="this.busy"></progress-bar>
-     <v-layout  row wrap>
        <v-flex xs12>
           <v-card color="grey lighten-4" flat v-show="this.cargado">
           <v-card-title primary-title>
-            <v-container grid-list-md>
-            <v-layout align-center row spacer>
-              <v-flex xs1>
-                <v-tooltip top>
-                  <v-btn icon slot="activator" @click="back()">
-                    <v-icon color="blue">arrow_back</v-icon>
-                  </v-btn>
-                  <span>Volver a los resultados</span>
-                </v-tooltip>
-              </v-flex>
-                <div class="display-2 grey--text">{{this.documento.nombre}}</div>
+            <v-tooltip top>
+              <v-btn icon slot="activator" @click="back()">
+                <v-icon color="blue">arrow_back</v-icon>
+              </v-btn>
+              <span>Volver a los resultados</span>
+            </v-tooltip>
+            <v-layout column>
+            <div class="display-2 grey--text">{{this.documento.nombre}}</div>
+            <div class="title grey--text">{{this.documento.direccion}}</div>
             </v-layout>
-              <div class="title grey--text">{{this.documento.direccion}}</div>
-            </v-container>
           </v-card-title>
-          <v-container grid-list-md>
+          <v-card-text>
             <div class="blockquote mb-5">
             {{this.documento.description}}
             </div>
-            <v-layout row>
+            <v-layout v-bind:class="grid">
               <v-btn flat color="primary" v-if="this.documento.fuente_descripcion != undefined" v-bind:href="this.documento.fuente_descripcion" >Fuente</v-btn>
               <v-spacer></v-spacer>
-              <star-rating read-only v-bind:increment="0.001" v-bind:rating="obtenerRating()" ></star-rating>
+              <star-rating read-only v-bind:increment="0.001" v-bind:rating="obtenerRating()" v-bind:star-size="sizeStar"></star-rating>
             </v-layout>
-          </v-container>
+          </v-card-text>
         </v-card>
       </v-flex>
      <v-flex xs12>
@@ -57,7 +53,7 @@
           </v-card-title>
 
             <v-container xs10 offset-xs1 mt-3 v-if="suggestions.length > 0">
-              <v-layout row wrap>
+              <v-layout wrap v-bind:class="grid">
                 <v-flex xs4
                 v-for="suggestion in suggestions"
                 :key="suggestion.nombre">
@@ -87,7 +83,7 @@
               <div class="headline">Califica este lugar y opina sobre él</div>
           </v-card-title>
           <v-container grid-list-md>
-            <form @submit.prevent="public" @keydown="form.onKeydown($event)">
+            <form @submit.prevent="publish" @keydown="form.onKeydown($event)">
                 <star-rating v-model="form.rating" v-bind:increment="0.5" :star-size="30" ></star-rating>
                 <v-text-field v-model="form.comentario" box multi-line label="Comentario"></v-text-field>
                 <v-spacer></v-spacer>
@@ -103,7 +99,7 @@
             >
               <v-card>
                 <v-card-title column>
-                  <v-layout align-center row spacer>
+                  <v-layout align-cente spacer v-bind:class="grid">
                     <v-flex xs1>
                       <v-avatar size="36px" v-bind:class="card.avatarColor">
                         <span class="white--text headline">{{card.nombre_usuario.charAt(0).toUpperCase()}}</span>
@@ -131,7 +127,6 @@
           </v-container>
         </v-card>
       </v-flex>
-      </v-layout>
     </v-container>
 </template>
 <script>
@@ -158,7 +153,9 @@ export default {
     map: null, 
     marker: null,
     cargado:false,
-    latLng:{}
+    latLng:{},
+    grid:'row',
+    sizeStar:50,
     }
   },
   name: 'content-view',
@@ -175,6 +172,7 @@ export default {
     }
   },
   mounted () {
+    this.onResize();
     this.obtenerDatos();
   },
 
@@ -185,6 +183,15 @@ export default {
     obtenerRating: function(){
       return parseFloat(this.documento.rating);
     },
+     onResize () {
+        if(window.screen.width < 450){
+          this.grid = "column";
+          this.sizeStar = 40;
+        }else{
+          this.grid = "row";
+          this.sizeStar = 50;
+        }
+      },
     async obtenerDatos () {
       if (await this.formHasErrors()) return
       this.busy = true
@@ -215,7 +222,7 @@ export default {
       this.busy = false
       this.cargado = true
     },
-    async public () {
+    async publish () {
       if (await this.formHasErrors()) return
       this.busy = true
       await this.form.post('/api/public') .then(response => { 
